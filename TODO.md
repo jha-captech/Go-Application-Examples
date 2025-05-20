@@ -8,5 +8,8 @@
 - [ ] db migrations (flyway?)
 - [ ] unit tests
 - [ ] integration tests (maybe)
+- [ ] service struct for layered and vertical slice, fat handlers for app package
+- [ ] use closure for handlers and structs for services.
+- [ ] OTEL (Maybe?)
 
 > Note: there will be a lot of duplicate code
