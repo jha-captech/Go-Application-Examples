@@ -5,20 +5,14 @@
 Assume brew installed
 
 ```bash
-# Install Go
-brew install go
-
-# install colima
-brew install colima
-
 # Install Go Task
 brew install go-task/tap/go-task
+```
 
-# Install mockery
-go install github.com/vektra/mockery/v3@v3.2.5
+All other dependencies can be installed with:
 
-# install golangci-lint
-brew install golangci-lint
+```bash
+task setup:deps
 ```
 
 ## Run the Application

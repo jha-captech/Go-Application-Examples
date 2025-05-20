@@ -5,25 +5,56 @@ version: '3'
 tasks:
 
   # --------------------------------------------------------------------------
-  # Dependency Management
+  # Dependency Setup & Management
   # --------------------------------------------------------------------------
   deps:
-    desc: Install Go dependencies and ensure .env exists
+    desc: Install system and Go dependencies, ensure .env exists
     cmds:
-      - echo "Installing Go dependencies and setting up .env file..."
-      - '[ -f .env ] || (echo "Copying example.env to .env" && cp example.env .env)'
+
+      # --- System dependencies ---
+      - brew install go
+      - brew install colima
+      - brew install golangci-lint
+
+      # --- Go tools ---
+      - go install github.com/vektra/mockery/v3@v3.2.5
+      - go install github.com/segmentio/golines@latest
+      - go install mvdan.cc/gofumpt@latest
+      - go install github.com/daixiang0/gci@latest
+      - go install github.com/4meepo/tagalign/cmd/tagalign@latest
+
+      # --- Project dependencies ---
+      - |
+        if [ ! -f .env ]; then
+          echo "No .env found, copying example.env to .env"
+          cp example.env .env
+        else
+          echo ".env already exists"
+        fi
       - go mod tidy
-      - echo "Dependencies installed and .env file ready."
-    silent: true
+    silent: false
 
   # --------------------------------------------------------------------------
-  # Linting & Testing
+  # Linting, Formatting & Testing
   # --------------------------------------------------------------------------
   lint:
     desc: Run golangci-lint on the codebase
     cmds:
       - echo "Running linter..."
       - golangci-lint run ./...
+    silent: true
+
+  format:
+    desc: Format code with gofumpt and golines (print width 100)
+    cmds:
+      - echo "Formatting code with gofumpt..."
+      - gofumpt -w .
+      - echo "Formatting code with golines (print width 100)..."
+      - golines --max-len=100 -w .
+      - echo "Formatting code with gci..."
+      - gci write -s standard -s default -s blank -s dot -s alias -s localmodule .
+      - echo "Formatting code with tagalign..."
+      - tagalign -fix -sort -strict ./...
     silent: true
 
   test:
@@ -120,4 +151,3 @@ tasks:
       - rm -rf bin/
       - docker compose down -v --remove-orphans
     silent: true
-
