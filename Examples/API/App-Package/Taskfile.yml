@@ -1,0 +1,24 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  colima-up:
+    desc: Start Colima (container runtime)
+    cmds:
+      - colima start
+    silent: false
+
+  docker-db-up:
+    desc: Start the database and run migrations (requires Colima)
+    deps: [ colima-up ]
+    cmds:
+      - docker compose up postgres flyway
+    silent: false
+
+  docker-app-up:
+    desc: Start the application (requires Colima)
+    deps: [ colima-up ]
+    cmds:
+      - docker compose up
+    silent: false
