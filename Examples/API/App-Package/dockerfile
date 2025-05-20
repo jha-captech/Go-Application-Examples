@@ -2,19 +2,31 @@ FROM golang:1.24.3-alpine3.21 AS build
 
 WORKDIR /app
 
+# Copy only go.mod and go.sum first to leverage Docker cache
 COPY go.mod ./
 COPY go.sum* ./
 RUN go mod download
 
-COPY .. .
-RUN go build -o ./app ./cmd/api/.
+# Copy only necessary source files
+COPY ./cmd/ ./cmd/
+COPY ./internal/ ./internal/
+
+# Build with optimizations
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o ./app ./cmd/api/.
 
 FROM alpine:3.21 AS publish
 
+# Add non-root user
+RUN adduser -D -u 10001 appuser
+
 WORKDIR /app
 
-COPY --from=build ./app .
+# Copy only the compiled binary
+COPY --from=build /app/app .
+
+# Use non-root user
+USER 10001
 
 EXPOSE 8080
 
-ENTRYPOINT [ "./app" ]
+ENTRYPOINT ["./app"]

@@ -20,5 +20,5 @@ task setup:deps
 - Run database and migrations
 
     ```bash
-    task docker-db-up
+    task db:start
     ```
