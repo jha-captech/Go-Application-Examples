@@ -3,22 +3,121 @@
 version: '3'
 
 tasks:
-  colima-up:
+
+  # --------------------------------------------------------------------------
+  # Dependency Management
+  # --------------------------------------------------------------------------
+  deps:
+    desc: Install Go dependencies and ensure .env exists
+    cmds:
+      - echo "Installing Go dependencies and setting up .env file..."
+      - '[ -f .env ] || (echo "Copying example.env to .env" && cp example.env .env)'
+      - go mod tidy
+      - echo "Dependencies installed and .env file ready."
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Linting & Testing
+  # --------------------------------------------------------------------------
+  lint:
+    desc: Run golangci-lint on the codebase
+    cmds:
+      - echo "Running linter..."
+      - golangci-lint run ./...
+    silent: true
+
+  test:
+    desc: Run all Go tests
+    cmds:
+      - echo "Running tests..."
+      - go test -count=1 ./...
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Build
+  # --------------------------------------------------------------------------
+  build:
+    desc: Build the Go application
+    cmds:
+      - echo "Building application..."
+      - go build -o bin/app .
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Local Container Runtime (Colima)
+  # --------------------------------------------------------------------------
+  colima:start:
     desc: Start Colima (container runtime)
     cmds:
+      - echo "Starting Colima..."
       - colima start
-    silent: false
+      - echo "Colima started."
+    silent: true
 
-  docker-db-up:
+  # --------------------------------------------------------------------------
+  # Database Management
+  # --------------------------------------------------------------------------
+  db:start:
     desc: Start the database and run migrations (requires Colima)
-    deps: [ colima-up ]
+    deps: [ colima:start ]
     cmds:
-      - docker compose up postgres flyway
-    silent: false
+      - echo "Starting database and running migrations..."
+      - docker compose up -d postgres flyway
+    silent: true
 
-  docker-app-up:
-    desc: Start the application (requires Colima)
-    deps: [ colima-up ]
+  db:wipe:
+    desc: Wipe the database using Flyway (requires Colima and database)
+    deps: [ colima:start, db:start ]
     cmds:
-      - docker compose up
-    silent: false
+      - echo "Wiping database using Flyway..."
+      - docker compose run --rm flyway clean
+      - echo "Database wiped."
+    silent: true
+
+  db:volume:remove:
+    desc: Remove only the Postgres database volume
+    cmds:
+      - echo "Removing Postgres volume..."
+      - docker compose down -v --remove-orphans
+      - echo "Postgres volume removed."
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Application Lifecycle
+  # --------------------------------------------------------------------------
+  app:start:
+    desc: Start the application (requires Colima)
+    deps: [ colima:start ]
+    cmds:
+      - echo "Starting application..."
+      - docker compose up -d
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Docker Management
+  # --------------------------------------------------------------------------
+  docker:stop:
+    desc: Stop all running Docker containers for this project
+    cmds:
+      - echo "Stopping Docker containers..."
+      - docker compose stop
+    silent: true
+
+  docker:down:
+    desc: Stop and remove all Docker containers, networks, and volumes for this project
+    cmds:
+      - echo "Stopping and removing Docker containers, networks, and volumes..."
+      - docker compose down -v --remove-orphans
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Cleanup
+  # --------------------------------------------------------------------------
+  clean:
+    desc: Remove build artifacts and Docker containers
+    cmds:
+      - echo "Cleaning up build artifacts and containers..."
+      - rm -rf bin/
+      - docker compose down -v --remove-orphans
+    silent: true
+
