@@ -1,5 +1,6 @@
 # TODO
 
+- [ ] use CT tech challenge as base
 - [ ] each example needs to be self-contained and able to run on its own
 - [ ] readme for each example explaining architecture and key decision points
   Reference [this](https://github.com/jha-captech/Go-Microservice-Template)
