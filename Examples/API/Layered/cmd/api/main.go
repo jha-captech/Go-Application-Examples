@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -17,6 +16,7 @@ import (
 	"example.com/examples/api/layered/internal/services"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 )
 
 func main() {
@@ -26,8 +26,6 @@ func main() {
 		os.Exit(1)
 	}
 }
-
-// sqlx to connect and ping at once
 
 func run(ctx context.Context) error {
 	// Load and validate environment config
@@ -43,8 +41,8 @@ func run(ctx context.Context) error {
 	}))
 
 	// Create a new DB connection using environment config
-	logger.DebugContext(ctx, "Connecting to database")
-	db, err := sql.Open("pgx", fmt.Sprintf(
+	logger.DebugContext(ctx, "Connecting to and pinging the database")
+	db, err := sqlx.Connect("pgx", fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		cfg.DBHost,
 		cfg.DBUserName,
@@ -53,13 +51,7 @@ func run(ctx context.Context) error {
 		cfg.DBPort,
 	))
 	if err != nil {
-		return fmt.Errorf("[in main.run] failed to open database: %w", err)
-	}
-
-	// Ping the database to verify connection
-	logger.DebugContext(ctx, "Pinging database")
-	if err = db.PingContext(ctx); err != nil {
-		return fmt.Errorf("[in main.run] failed to ping database: %w", err)
+		return fmt.Errorf("[in main.run] failed to open/ping database: %w", err)
 	}
 
 	defer func() {

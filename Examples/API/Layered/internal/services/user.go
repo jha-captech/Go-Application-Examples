@@ -8,17 +8,18 @@ import (
 	"log/slog"
 
 	"example.com/examples/api/layered/internal/models"
+	"github.com/jmoiron/sqlx"
 )
 
 // UsersService is a service capable of performing CRUD operations for
 // models.User models.
 type UsersService struct {
 	logger *slog.Logger
-	db     *sql.DB
+	db     *sqlx.DB
 }
 
 // NewUsersService creates a new UsersService and returns a pointer to it.
-func NewUsersService(logger *slog.Logger, db *sql.DB) *UsersService {
+func NewUsersService(logger *slog.Logger, db *sqlx.DB) *UsersService {
 	return &UsersService{
 		logger: logger,
 		db:     db,

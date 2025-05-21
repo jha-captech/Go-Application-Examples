@@ -9,6 +9,7 @@ import (
 
 	"example.com/examples/api/layered/internal/models"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jmoiron/sqlx"
 )
 
 func TestUsersService_ReadUser(t *testing.T) {
@@ -62,7 +63,7 @@ func TestUsersService_ReadUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, db)
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
 
 			output, err := userService.ReadUser(context.TODO(), tc.input)
 			if err != tc.expectedError {
@@ -170,7 +171,7 @@ func TestUsersService_ListUsers(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, db)
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
 
 			outputs, err := userService.ListUsers(context.TODO(), tc.input)
 			if err != tc.expectedError {
@@ -238,7 +239,7 @@ func TestBlogsService_DeleteUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, db)
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
 
 			err = userService.DeleteUser(context.TODO(), tc.input)
 			if err != tc.expectedError {
@@ -304,7 +305,7 @@ func TestUsersService_CreateUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, db)
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
 
 			output, err := userService.CreateUser(context.TODO(), tc.input)
 			if err != tc.expectedError {
@@ -375,7 +376,7 @@ func TestUsersService_UpdateUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, db)
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
 
 			output, err := userService.UpdateUser(context.TODO(), 1, tc.input)
 			if err != tc.expectedError {
