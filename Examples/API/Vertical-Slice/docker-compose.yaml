@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:17.5-alpine3.21
+    container_name: ${DATABASE_CONTAINER_NAME}
+    restart: always
+    env_file:
+      - .env
+    environment:
+      PGUSER: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d ${DATABASE_NAME} -U ${DATABASE_USER}" ]
+      interval: 5s
+      start_period: 1s
+      timeout: 5s
+      retries: 5
+
+  flyway:
+    image: flyway/flyway:11.8-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./db/migrations:/flyway/sql
+      - ./db/conf:/flyway/conf
+    environment:
+      FLYWAY_URL: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
+      FLYWAY_USER: ${DATABASE_USER}
+      FLYWAY_PASSWORD: ${DATABASE_PASSWORD}
+      FLYWAY_CONNECT_RETRIES: 10
+    command: migrate
+
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+
+volumes:
+  postgres-db:

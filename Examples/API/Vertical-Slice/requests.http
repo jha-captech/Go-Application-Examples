@@ -1,0 +1,3 @@
+### GET hello world
+GET {{host}}/hello-world
+Accept: application/json

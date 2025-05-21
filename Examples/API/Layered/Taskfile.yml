@@ -1,0 +1,153 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+
+  # --------------------------------------------------------------------------
+  # Dependency Setup & Management
+  # --------------------------------------------------------------------------
+  deps:
+    desc: Install system and Go dependencies, ensure .env exists
+    cmds:
+
+      # --- System dependencies ---
+      - brew install go
+      - brew install colima
+      - brew install golangci-lint
+
+      # --- Go tools ---
+      - go install github.com/vektra/mockery/v3@v3.2.5
+      - go install github.com/segmentio/golines@latest
+      - go install mvdan.cc/gofumpt@latest
+      - go install github.com/daixiang0/gci@latest
+      - go install github.com/4meepo/tagalign/cmd/tagalign@latest
+
+      # --- Project dependencies ---
+      - |
+        if [ ! -f .env ]; then
+          echo "No .env found, copying example.env to .env"
+          cp example.env .env
+        else
+          echo ".env already exists"
+        fi
+      - go mod tidy
+    silent: false
+
+  # --------------------------------------------------------------------------
+  # Linting, Formatting & Testing
+  # --------------------------------------------------------------------------
+  lint:
+    desc: Run golangci-lint on the codebase
+    cmds:
+      - echo "Running linter..."
+      - golangci-lint run ./...
+    silent: true
+
+  format:
+    desc: Format code with gofumpt and golines (print width 100)
+    cmds:
+      - echo "Formatting code with gofumpt..."
+      - gofumpt -w .
+      - echo "Formatting code with golines (print width 100)..."
+      - golines --max-len=100 -w .
+      - echo "Formatting code with gci..."
+      - gci write -s standard -s default -s blank -s dot -s alias -s localmodule .
+      - echo "Formatting code with tagalign..."
+      - tagalign -fix -sort -strict ./...
+    silent: true
+
+  test:
+    desc: Run all Go tests
+    cmds:
+      - echo "Running tests..."
+      - go test -count=1 ./...
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Build
+  # --------------------------------------------------------------------------
+  build:
+    desc: Build the Go application
+    cmds:
+      - echo "Building application..."
+      - go build -o bin/app .
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Local Container Runtime (Colima)
+  # --------------------------------------------------------------------------
+  colima:start:
+    desc: Start Colima (container runtime)
+    cmds:
+      - echo "Starting Colima..."
+      - colima start
+      - echo "Colima started."
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Database Management
+  # --------------------------------------------------------------------------
+  db:start:
+    desc: Start the database and run migrations (requires Colima)
+    deps: [ colima:start ]
+    cmds:
+      - echo "Starting database and running migrations..."
+      - docker compose up -d postgres flyway
+    silent: true
+
+  db:wipe:
+    desc: Wipe the database using Flyway (requires Colima and database)
+    deps: [ colima:start, db:start ]
+    cmds:
+      - echo "Wiping database using Flyway..."
+      - docker compose run --rm flyway clean
+      - echo "Database wiped."
+    silent: true
+
+  db:volume:remove:
+    desc: Remove only the Postgres database volume
+    cmds:
+      - echo "Removing Postgres volume..."
+      - docker compose down -v --remove-orphans
+      - echo "Postgres volume removed."
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Application Lifecycle
+  # --------------------------------------------------------------------------
+  app:start:
+    desc: Start the application (requires Colima)
+    deps: [ colima:start ]
+    cmds:
+      - echo "Starting application..."
+      - docker compose up -d
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Docker Management
+  # --------------------------------------------------------------------------
+  docker:stop:
+    desc: Stop all running Docker containers for this project
+    cmds:
+      - echo "Stopping Docker containers..."
+      - docker compose stop
+    silent: true
+
+  docker:down:
+    desc: Stop and remove all Docker containers, networks, and volumes for this project
+    cmds:
+      - echo "Stopping and removing Docker containers, networks, and volumes..."
+      - docker compose down -v --remove-orphans
+    silent: true
+
+  # --------------------------------------------------------------------------
+  # Cleanup
+  # --------------------------------------------------------------------------
+  clean:
+    desc: Remove build artifacts and Docker containers
+    cmds:
+      - echo "Cleaning up build artifacts and containers..."
+      - rm -rf bin/
+      - docker compose down -v --remove-orphans
+    silent: true
