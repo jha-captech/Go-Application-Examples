@@ -1,23 +1,42 @@
-package routes_test
+package routes
 
 // import (
+// 	"log/slog"
 // 	"net/http"
 // 	"net/http/httptest"
 // 	"testing"
 
-// 	"github.com/stretchr/testify/assert"
+// 	"example.com/examples/api/layered/internal/services"
 // )
 
-// func TestRoutes_AddRoute(t *testing.T) {
-// 	router := mux.NewRouter()
-// 	AddRoute(router, "/test", TestHandler)
+// func TestAddRoutes(t *testing.T) {
+// 	mux := http.NewServeMux()
+// 	logger := slog.Default()
+// 	usersService := &services.UsersService{} // Use a mock if needed
 
-// 	req, err := http.NewRequest("GET", "/test", nil)
-// 	assert.NoError(t, err)
+// 	// Replace handlers with mocks for isolation if needed.
+// 	// For now, this test just checks that routes are registered and return 200.
+// 	AddRoutes(mux, logger, usersService)
 
-// 	rr := httptest.NewRecorder()
-// 	router.ServeHTTP(rr, req)
+// 	tests := []struct {
+// 		method string
+// 		path   string
+// 	}{
+// 		{"GET", "/api/user/1"},
+// 		{"GET", "/api/user"},
+// 		{"POST", "/api/user"},
+// 		{"PUT", "/api/user/1"},
+// 		{"DELETE", "/api/user/1"},
+// 		{"GET", "/api/health"},
+// 	}
 
-// 	assert.Equal(t, http.StatusOK, rr.Code)
-// 	assert.Equal(t, "Test successful", rr.Body.String())
+// 	for _, tt := range tests {
+// 		req := httptest.NewRequest(tt.method, tt.path, nil)
+// 		rr := httptest.NewRecorder()
+// 		mux.ServeHTTP(rr, req)
+
+// 		if rr.Code == http.StatusNotFound {
+// 			t.Errorf("Route %s %s not registered (got 404)", tt.method, tt.path)
+// 		}
+// 	}
 // }

@@ -121,7 +121,7 @@ tasks:
     deps: [ colima:start ]
     cmds:
       - echo "Starting application..."
-      - docker compose up -d
+      - docker compose build && docker compose up -d
     silent: true
 
   # --------------------------------------------------------------------------
