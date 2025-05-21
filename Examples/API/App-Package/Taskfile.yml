@@ -73,7 +73,7 @@ tasks:
     desc: Build the Go application
     cmds:
       - echo "Building application..."
-      - go build -o bin/app .
+      - go build -o bin/app ./cmd/app/main.go
     silent: true
 
   # --------------------------------------------------------------------------
@@ -141,6 +141,13 @@ tasks:
     cmds:
       - echo "Stopping and removing Docker containers, networks, and volumes..."
       - docker compose down -v --remove-orphans
+    silent: true
+
+  docker:build:
+    desc: Build Docker images for the application
+    cmds:
+      - echo "Building Docker images..."
+      - docker compose build
     silent: true
 
   # --------------------------------------------------------------------------
