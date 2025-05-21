@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"example.com/examples/api/layered/handlers/mock"
-	"example.com/examples/api/layered/models"
+	"example.com/examples/api/layered/internal/handlers/mock"
+	"example.com/examples/api/layered/internal/models"
 )
 
 func TestHandleCreateUser(t *testing.T) {

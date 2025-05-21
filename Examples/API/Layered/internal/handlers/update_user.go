@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"example.com/examples/api/layered/models"
+	"example.com/examples/api/layered/internal/models"
 )
 
 // userUpdater represents a type capable of updating a user and

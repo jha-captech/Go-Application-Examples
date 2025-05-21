@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"example.com/examples/api/layered/models"
+	"example.com/examples/api/layered/internal/models"
 )
 
 // userReader represents a type capable of reading a user from storage and

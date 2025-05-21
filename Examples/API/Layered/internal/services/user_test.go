@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"testing"
 
-	"example.com/examples/api/layered/models"
+	"example.com/examples/api/layered/internal/models"
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
@@ -194,13 +194,12 @@ func TestUsersService_ListUsers(t *testing.T) {
 
 func TestBlogsService_DeleteUser(t *testing.T) {
 	testcases := map[string]struct {
-		mockCalled     bool
-		mockInputArgs  []driver.Value
-		mockOutput     *sqlmock.Rows
-		mockError      error
-		input          uint64
-		expectedOutput models.Blog
-		expectedError  error
+		mockCalled    bool
+		mockInputArgs []driver.Value
+		mockOutput    *sqlmock.Rows
+		mockError     error
+		input         uint64
+		expectedError error
 	}{
 		"happy path": {
 			mockCalled:    true,

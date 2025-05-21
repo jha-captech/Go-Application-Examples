@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"example.com/examples/api/layered/models"
+	"example.com/examples/api/layered/internal/models"
 )
 
 // UsersService is a service capable of performing CRUD operations for

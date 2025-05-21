@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"example.com/examples/api/layered/handlers"
-	"example.com/examples/api/layered/services"
+	"example.com/examples/api/layered/internal/handlers"
+	"example.com/examples/api/layered/internal/services"
 )
 
 // @title						Blog Service API
@@ -21,7 +21,7 @@ import (
 // @BasePath					/api
 // @externalDocs.description	OpenAPI
 // @externalDocs.url			https://swagger.io/resources/open-api/
-func AddRoutes(mux *http.ServeMux, logger *slog.Logger, usersService *services.UsersService, blogsService *services.BlogsService, commentsService *services.CommentsService, baseURL string) {
+func AddRoutes(mux *http.ServeMux, logger *slog.Logger, usersService *services.UsersService, baseURL string) {
 	// User endpoints
 	mux.Handle("GET /api/user/{id}", handlers.HandleReadUser(logger, usersService))
 	mux.Handle("GET /api/user", handlers.HandleListUsers(logger, usersService))

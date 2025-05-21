@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"example.com/examples/api/layered/handlers/mock"
-	"example.com/examples/api/layered/models"
+	"example.com/examples/api/layered/internal/handlers/mock"
+	"example.com/examples/api/layered/internal/models"
 )
 
 func TestHandleReadUser(t *testing.T) {

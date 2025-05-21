@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"example.com/examples/api/layered/models"
+	"example.com/examples/api/layered/internal/models"
 )
 
 // userCreator represents a type capable of reading a user from storage and
