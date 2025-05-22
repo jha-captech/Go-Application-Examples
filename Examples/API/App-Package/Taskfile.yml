@@ -71,7 +71,7 @@ tasks:
     desc: Build the Go application
     cmds:
       - echo "Building application..."
-      - go build -o bin/app .
+      - go build -o bin/api .
     silent: true
 
   # --------------------------------------------------------------------------
@@ -116,13 +116,21 @@ tasks:
   # --------------------------------------------------------------------------
   # Application Lifecycle
   # --------------------------------------------------------------------------
-  app:start:
+  app:build:
     desc: Start the application (requires Colima)
     deps: [ colima:start ]
     cmds:
-      - echo "Starting application..."
-      - docker compose up -d
+      - echo "Building application in Docker..."
+      - docker compose build
     silent: true
+
+  app:start:
+    desc: Start the application (requires Colima)
+    deps: [ colima:start, app:build ]
+    cmds:
+      - echo "Starting application..."
+      - docker compose up {{.CLI_ARGS}}
+    silent: false
 
   # --------------------------------------------------------------------------
   # Docker Management
@@ -151,3 +159,4 @@ tasks:
       - rm -rf bin/
       - docker compose down -v --remove-orphans
     silent: true
+
