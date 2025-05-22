@@ -66,6 +66,32 @@ tasks:
       - go test -count=1 ./...
     silent: true
 
+  mock:generate:
+    desc: Generate mocks for interfaces in the project
+    cmds:
+      - echo "Generating mocks..."
+      - mockery
+    silent: true
+
+  mock:add-to-git:
+    desc: Add generated mocks to git
+    cmds:
+      - echo "Adding generated mocks to git..."
+      - git add $(find ./internal -name 'mocks_test.go')
+    silent: true
+
+  mock:remove:
+    desc: Remove existing mocks from git
+    cmds:
+      - echo "Removing existing mocks..."
+      - find ./internal -name 'mocks_test.go' -delete
+    silent: true
+
+  mock:
+    desc: Generate and add mocks to git
+    deps: [ mock:remove, mock:generate, mock:add-to-git ]
+    silent: true
+
   # --------------------------------------------------------------------------
   # Build
   # --------------------------------------------------------------------------
@@ -73,7 +99,7 @@ tasks:
     desc: Build the Go application
     cmds:
       - echo "Building application..."
-      - go build -o bin/app .
+      - go build -o bin/app ./cmd/app/main.go
     silent: true
 
   # --------------------------------------------------------------------------
@@ -141,6 +167,13 @@ tasks:
     cmds:
       - echo "Stopping and removing Docker containers, networks, and volumes..."
       - docker compose down -v --remove-orphans
+    silent: true
+
+  docker:build:
+    desc: Build Docker images for the application
+    cmds:
+      - echo "Building Docker images..."
+      - docker compose build
     silent: true
 
   # --------------------------------------------------------------------------
