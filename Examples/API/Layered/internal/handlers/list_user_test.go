@@ -57,6 +57,7 @@ func TestHandleListUser(t *testing.T) {
 				Users []models.User `json:"Users"`
 			}
 
+			// Check the body
 			var resp usersResponse
 			_ = json.Unmarshal(rec.Body.Bytes(), &resp)
 			respBody := resp.Users

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"example.com/examples/api/layered/internal/handlers/mock"
@@ -57,10 +58,13 @@ func TestHandleCreateUser(t *testing.T) {
 				t.Errorf("want status %d, got %d", tc.wantStatus, rec.Code)
 			}
 
-			// // Check the body
-			// if strings.Trim(rec.Body.String(), "\n") != fmt.Sprintf("%+v", tc.wantBody) {
-			// 	t.Errorf("want body %q, got %q", tc.wantBody, rec.Body.String())
-			// }
+			// Check the body
+			var respBody models.User
+			_ = json.Unmarshal(rec.Body.Bytes(), &respBody)
+
+			if !reflect.DeepEqual(respBody, tc.wantBody) {
+				t.Errorf("want body %q, got %q", tc.wantBody, rec.Body.String())
+			}
 		})
 	}
 }
