@@ -15,19 +15,12 @@ import (
 
 func TestHandleReadUser(t *testing.T) {
 	tests := map[string]struct {
-		wantStatus  int
-		wantBody    string
-		wantResults models.User
+		wantStatus int
+		wantBody   models.User
 	}{
 		"happy path": {
 			wantStatus: 200,
-			wantBody: `
-				"id":       1,
-				"name":     "john",
-				"email":    "john@mail.com",
-				"password": "password123!",
-			`,
-			wantResults: models.User{
+			wantBody: models.User{
 				ID:       1,
 				Name:     "john",
 				Email:    "john@mail.com",
@@ -48,7 +41,7 @@ func TestHandleReadUser(t *testing.T) {
 			logger := slog.Default()
 
 			userReader := new(mock.UserReader)
-			userReader.On("ReadUser", context.Background(), uint64(1)).Return(tc.wantResults, nil)
+			userReader.On("ReadUser", context.Background(), uint64(1)).Return(tc.wantBody, nil)
 			// Call the handler
 			handler := HandleReadUser(logger, userReader)
 
@@ -59,7 +52,7 @@ func TestHandleReadUser(t *testing.T) {
 			}
 
 			// Check the body
-			json, _ := json.Marshal(tc.wantResults)
+			json, _ := json.Marshal(tc.wantBody)
 			if strings.Trim(rec.Body.String(), "\n") != string(json) {
 				t.Errorf("want body %q, got %q", string(json), rec.Body.String())
 			}

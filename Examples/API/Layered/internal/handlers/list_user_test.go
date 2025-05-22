@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"example.com/examples/api/layered/internal/handlers/mock"
@@ -50,10 +52,18 @@ func TestHandleListUser(t *testing.T) {
 				t.Errorf("want status %d, got %d", tc.wantStatus, rec.Code)
 			}
 
-			// // Check the body
-			// if strings.Trim(rec.Body.String(), "\n") != fmt.Sprintf("%+v", tc.wantBody) {
-			// 	t.Errorf("want body %q, got %q", tc.wantBody, rec.Body.String())
-			// }
+			// Check the body
+			type usersResponse struct {
+				Users []models.User `json:"Users"`
+			}
+
+			var resp usersResponse
+			_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+			respBody := resp.Users
+
+			if !reflect.DeepEqual(respBody, tc.wantBody) {
+				t.Errorf("want body %q, got %q", tc.wantBody, rec.Body.String())
+			}
 		})
 	}
 }
