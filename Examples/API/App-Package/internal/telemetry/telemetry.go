@@ -3,6 +3,7 @@ package telemetry
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -36,7 +37,10 @@ func SetupOTelSDK(ctx context.Context, cfg Config) (
 			err = errors.Join(err, fn(ctx))
 		}
 		shutdownFuncs = nil
-		return err
+		if err != nil {
+			return fmt.Errorf("[in telemetry.SetupOTelSDK] shutdown error: %w", err)
+		}
+		return nil
 	}
 
 	// handleErr calls shutdown for cleanup and makes sure that all errors are returned.
@@ -76,7 +80,10 @@ func newTracerProvider(ctx context.Context, cfg Config) (*trace.TracerProvider, 
 		otlptracegrpc.WithInsecure(),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"[in telemetry.newTracerProvider] failed to create trace exporter: %w",
+			err,
+		)
 	}
 
 	tracerProvider := trace.NewTracerProvider(
