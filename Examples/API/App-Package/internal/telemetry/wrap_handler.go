@@ -11,6 +11,16 @@ import (
 
 type spanKey struct{}
 
+type InstrumentedServeMux struct {
+	http.ServeMux
+}
+
+func NewInstrumentedServeMux() *InstrumentedServeMux {
+	return &InstrumentedServeMux{
+		ServeMux: *http.NewServeMux(),
+	}
+}
+
 func setRootSpanName(ctx context.Context, name string) {
 	ctxValue := ctx.Value(spanKey{})
 	if ctxValue == nil {
@@ -26,21 +36,22 @@ func setRootSpanName(ctx context.Context, name string) {
 	span.SetAttributes(attribute.String("http.route", name))
 }
 
-func HandleFunc(mux *http.ServeMux, pattern string, handler http.HandlerFunc) {
-	mux.HandleFunc(
-		pattern, func(w http.ResponseWriter, r *http.Request) {
-			setRootSpanName(r.Context(), pattern)
-			handler.ServeHTTP(w, r)
-		},
+func (m *InstrumentedServeMux) HandleFunc(pattern string, handler http.HandlerFunc) {
+	m.Handle(pattern, handler)
+}
+
+func (m *InstrumentedServeMux) Handle(pattern string, handler http.Handler) {
+	m.ServeMux.Handle(
+		pattern, http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				setRootSpanName(r.Context(), pattern)
+				handler.ServeHTTP(w, r)
+			},
+		),
 	)
 }
 
-func Handle(mux *http.ServeMux, pattern string, handler http.Handler) {
-	HandleFunc(mux, pattern, handler.ServeHTTP)
-}
-
-func NewRootInstrumentedHandler(
-	handler http.Handler,
+func (m *InstrumentedServeMux) InstrumentRootHandler(
 	defaultName string,
 	opts ...otelhttp.Option,
 ) http.Handler {
@@ -53,7 +64,7 @@ func NewRootInstrumentedHandler(
 
 				ctx = context.WithValue(ctx, spanKey{}, span)
 
-				handler.ServeHTTP(w, r.WithContext(ctx))
+				m.ServeMux.ServeHTTP(w, r.WithContext(ctx))
 			},
 		), defaultName, opts...,
 	)

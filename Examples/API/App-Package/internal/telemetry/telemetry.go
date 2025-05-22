@@ -76,7 +76,7 @@ func newPropagator() propagation.TextMapPropagator {
 func newTracerProvider(ctx context.Context, cfg Config) (*trace.TracerProvider, error) {
 	traceExporter, err := otlptracegrpc.New(
 		ctx,
-		otlptracegrpc.WithEndpoint(cfg.JaegerEndpoint), // Use Docker service name
+		otlptracegrpc.WithEndpoint(cfg.JaegerEndpoint),
 		otlptracegrpc.WithInsecure(),
 	)
 	if err != nil {

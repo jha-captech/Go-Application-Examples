@@ -47,15 +47,13 @@ func run(ctx context.Context) (err error) {
 		err = errors.Join(err, otelShutdownFunc(ctx))
 	}()
 
-	mux := http.NewServeMux()
+	mux := telemetry.NewInstrumentedServeMux()
 
-	telemetry.HandleFunc(mux, "GET /hello-world/{id}", helloHandler)
-
-	handler := telemetry.NewRootInstrumentedHandler(mux, "my-service")
+	mux.HandleFunc("GET /hello-world/{id}", helloHandler())
 
 	srv := &http.Server{
 		Addr:    ":8080",
-		Handler: handler,
+		Handler: mux.InstrumentRootHandler("my-service"),
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -88,16 +86,18 @@ func run(ctx context.Context) (err error) {
 }
 
 // HelloHandler responds with a hello world message
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-	_, span := tracer.Start(r.Context(), "helloHandler")
-	defer span.End()
+func helloHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := tracer.Start(r.Context(), "helloHandler")
+		defer span.End()
 
-	log.Printf("Request received: %s %s", r.Method, r.URL.Path)
+		log.Printf("Request received: %s %s", r.Method, r.URL.Path)
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(
-		map[string]string{
-			"message": "Hello, World v3!",
-		},
-	)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(
+			map[string]string{
+				"message": "Hello, World v3!",
+			},
+		)
+	}
 }
