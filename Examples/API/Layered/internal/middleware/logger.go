@@ -18,7 +18,7 @@ func (w *wrappedWriter) WriteHeader(statusCode int) {
 
 // Logger is a middleware that logs the request method, path, duration, and
 // status code.
-func Logger(logger *slog.Logger) Middleware {
+func Logger(logger *slog.Logger) Func {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
