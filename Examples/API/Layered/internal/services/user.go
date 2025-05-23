@@ -57,9 +57,11 @@ func (s *UsersService) CreateUser(ctx context.Context, user models.User) (models
 // fully hydrated models.User or error is returned.
 func (s *UsersService) ReadUser(ctx context.Context, id uint64) (models.User, error) {
 	s.logger.DebugContext(ctx, "Reading user", "id", id)
+	var user models.User
 
-	row := s.db.QueryRowContext(
+	err := s.db.GetContext(
 		ctx,
+		&user,
 		`
 		SELECT id,
 		       name,
@@ -70,10 +72,6 @@ func (s *UsersService) ReadUser(ctx context.Context, id uint64) (models.User, er
         `,
 		id,
 	)
-
-	var user models.User
-
-	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -131,43 +129,9 @@ func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
 		`,
 		id,
 	)
-
 	if err != nil {
 		return fmt.Errorf(
 			"[in services.UsersService.DeleteUser] failed to delete user: %w",
-			err,
-		)
-	}
-
-	// Delete blogs with authodId = id
-	_, err = s.db.ExecContext(
-		ctx,
-		`
-		DELETE FROM blogs WHERE author_id = $1::int
-		`,
-		id,
-	)
-
-	if err != nil {
-		return fmt.Errorf(
-			"[in services.UsersService.DeleteUser] failed to delete blogs: %w",
-			err,
-		)
-	}
-
-	//Delete comments where userId = id
-
-	_, err = s.db.ExecContext(
-		ctx,
-		`
-		DELETE FROM comments WHERE user_id = $1::int
-		`,
-		id,
-	)
-
-	if err != nil {
-		return fmt.Errorf(
-			"[in services.UsersService.DeleteUser] failed to delete comments: %w",
 			err,
 		)
 	}
@@ -179,45 +143,22 @@ func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
 // or an error is returned.
 func (s *UsersService) ListUsers(ctx context.Context, name string) ([]models.User, error) {
 	s.logger.DebugContext(ctx, "Listing users")
+	var users []models.User
 
-	rows, err := s.db.QueryContext(
+	err := s.db.SelectContext(
 		ctx,
+		&users,
 		`
 		SELECT id,
 		       name,
 		       email,
 		       password
 		FROM users
+		WHERE name = $1::text
         `,
+		name,
 	)
-
 	if err != nil {
-		return []models.User{}, fmt.Errorf(
-			"[in services.UsersService.ListUser] failed to read users: %w",
-			err,
-		)
-	}
-
-	var users []models.User
-
-	// error handling for error in for loop and then for empty error out of for loop?
-	// NEED TO HANDLE ERROR FOR EMPTY RESULTS
-	for rows.Next() {
-		var user models.User
-		err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
-		if err != nil {
-			return []models.User{}, fmt.Errorf(
-				"[in services.UsersService.ListUser] failed to read users: %w",
-				err,
-			)
-		}
-
-		if name == "" || user.Name == name {
-			users = append(users, user)
-		}
-	}
-
-	if err = rows.Err(); err != nil {
 		return []models.User{}, fmt.Errorf(
 			"[in services.UsersService.ListUser] failed to read users: %w",
 			err,

@@ -120,7 +120,6 @@ func TestUsersService_ListUsers(t *testing.T) {
 			mockCalled:    true,
 			mockInputArgs: []driver.Value{1},
 			mockOutput: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
-				AddRow(1, "john", "john@me.com", "password123!").
 				AddRow(2, "jane", "jane@me.com", "pwd5678!"),
 
 			mockError: nil,
@@ -138,9 +137,7 @@ func TestUsersService_ListUsers(t *testing.T) {
 		"filter by name no results": {
 			mockCalled:    true,
 			mockInputArgs: []driver.Value{1},
-			mockOutput: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
-				AddRow(1, "john", "john@me.com", "password123!").
-				AddRow(2, "jane", "jane@me.com", "pwd5678!"),
+			mockOutput:    sqlmock.NewRows([]string{"id", "name", "email", "password"}),
 
 			mockError:      nil,
 			input:          "joe",
@@ -166,6 +163,7 @@ func TestUsersService_ListUsers(t *testing.T) {
 							email,
 							password
 						FROM users
+						WHERE name = $1::text
                     `)).
 					WillReturnRows(tc.mockOutput).
 					WillReturnError(tc.mockError)
@@ -223,17 +221,6 @@ func TestBlogsService_DeleteUser(t *testing.T) {
 			if tc.mockCalled {
 				mock.
 					ExpectExec(regexp.QuoteMeta(`DELETE FROM users WHERE id = $1::int`)).
-					WithArgs(tc.mockInputArgs...).
-					WillReturnResult(sqlmock.NewResult(1, 1)).
-					WillReturnError(tc.mockError)
-				mock.
-					ExpectExec(regexp.QuoteMeta(`DELETE FROM blogs WHERE author_id = $1::int`)).
-					WithArgs(tc.mockInputArgs...).
-					WillReturnResult(sqlmock.NewResult(1, 1)).
-					WillReturnError(tc.mockError)
-
-				mock.
-					ExpectExec(regexp.QuoteMeta(`DELETE FROM comments WHERE user_id = $1::int`)).
 					WithArgs(tc.mockInputArgs...).
 					WillReturnResult(sqlmock.NewResult(1, 1)).
 					WillReturnError(tc.mockError)

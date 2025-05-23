@@ -15,6 +15,8 @@ tasks:
       - brew install go
       - brew install colima
       - brew install golangci-lint
+      - brew install docker
+      - brew install docker-compose
 
       # --- Go tools ---
       - go install github.com/vektra/mockery/v3@v3.2.5
@@ -62,6 +64,32 @@ tasks:
     cmds:
       - echo "Running tests..."
       - go test -count=1 ./...
+    silent: true
+
+  mock:generate:
+    desc: Generate mocks for interfaces in the project
+    cmds:
+      - echo "Generating mocks..."
+      - mockery
+    silent: true
+
+  mock:add-to-git:
+    desc: Add generated mocks to git
+    cmds:
+      - echo "Adding generated mocks to git..."
+      - git add $(find ./internal -name 'mocks_test.go')
+    silent: true
+
+  mock:remove:
+    desc: Remove existing mocks from git
+    cmds:
+      - echo "Removing existing mocks..."
+      - find ./internal -name 'mocks_test.go' -delete
+    silent: true
+
+  mock:
+    desc: Generate and add mocks to git
+    deps: [ mock:remove, mock:generate, mock:add-to-git ]
     silent: true
 
   # --------------------------------------------------------------------------
