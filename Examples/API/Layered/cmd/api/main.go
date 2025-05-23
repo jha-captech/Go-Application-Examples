@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"time"
+	"syscall"
 
 	"example.com/examples/api/layered/internal/config"
 	"example.com/examples/api/layered/internal/middleware"
 	"example.com/examples/api/layered/internal/routes"
 	"example.com/examples/api/layered/internal/services"
+	"golang.org/x/sync/errgroup"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
@@ -28,6 +29,9 @@ func main() {
 }
 
 func run(ctx context.Context) error {
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	// Load and validate environment config
 	cfg, err := config.New()
 	if err != nil {
@@ -76,55 +80,39 @@ func run(ctx context.Context) error {
 	wrappedMux := middleware.WrapHandler(mux, middleware.Logger(logger), middleware.Recover(logger))
 
 	// Create a new http server with our mux as the handler
-	httpServer := &http.Server{
+	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: wrappedMux,
 	}
 
-	errChan := make(chan error)
+	eg, ctx := errgroup.WithContext(ctx)
 
-	// Server run context
-	ctx, done := context.WithCancel(ctx)
-	defer done()
+	context.AfterFunc(
+		ctx, func() {
+			eg.Go(
+				func() error {
+					if err := srv.Shutdown(ctx); err != nil {
+						return fmt.Errorf("failed to shutdown server: %w", err)
+					}
 
-	// Handle graceful shutdown with go routine on SIGINT
-	go func() {
-		// create a channel to listen for SIGINT and then block until it is received
-		sig := make(chan os.Signal, 1)
-		signal.Notify(sig, os.Interrupt)
-		<-sig
-
-		logger.DebugContext(ctx, "Received SIGINT, shutting down server")
-
-		// Create a context with a timeout to allow the server to shut down gracefully
-		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		defer cancel()
-
-		// Shutdown the server. If an error occurs, send it to the error channel
-		if err = httpServer.Shutdown(ctx); err != nil {
-			errChan <- fmt.Errorf("[in main.run] failed to shutdown http server: %w", err)
-			return
-		}
-
-		// Close the idle connections channel, unblocking `run()`
-		done()
-	}()
+					return nil
+				},
+			)
+		},
+	)
 
 	// Start the http server
 	//
-	// once httpServer.Shutdown is called, it will always return a
+	// once srv.Shutdown is called, it will always return a
 	// http.ErrServerClosed error and we don't care about that error.
-	logger.InfoContext(ctx, "listening", slog.String("address", httpServer.Addr))
-	if err = httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	logger.InfoContext(ctx, "listening", slog.String("address", srv.Addr))
+	if err = srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("[in main.run] failed to listen and serve: %w", err)
 	}
 
-	// block until the server is shut down or an error occurs
-	select {
-	case err = <-errChan:
-		return err
-	case <-ctx.Done():
-		return nil
+	if err = eg.Wait(); err != nil {
+		return fmt.Errorf("error waiting for server to shut down: %w", err)
 	}
 
+	return nil
 }
