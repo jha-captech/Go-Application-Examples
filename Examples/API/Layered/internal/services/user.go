@@ -177,7 +177,6 @@ func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
 
 // ListUsers attempts to list all users in the database. A slice of models.User
 // or an error is returned.
-// WHY DO WE NEED ID?
 func (s *UsersService) ListUsers(ctx context.Context, name string) ([]models.User, error) {
 	s.logger.DebugContext(ctx, "Listing users")
 

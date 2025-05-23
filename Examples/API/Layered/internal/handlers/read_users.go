@@ -38,7 +38,7 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.Handler {
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to parse id from url",
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
@@ -52,7 +52,7 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.Handler {
 		user, err := userReader.ReadUser(ctx, uint64(id))
 		if err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to read user",
 				slog.String("error", err.Error()),
 			)
@@ -74,9 +74,10 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.Handler {
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to encode response",
-				slog.String("error", err.Error()))
+				slog.String("error", err.Error()),
+			)
 
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}

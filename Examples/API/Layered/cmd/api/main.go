@@ -70,17 +70,10 @@ func run(ctx context.Context) error {
 	mux := http.NewServeMux()
 
 	// Add our routes to the mux
-	routes.AddRoutes(
-		mux,
-		logger,
-		usersService,
-	)
+	routes.AddRoutes(mux, logger, usersService)
 
 	// Wrap the mux with middleware
-	wrappedMux := middleware.Logger(logger)(mux)
-
-	// IS THIS CORRECT WAY TO CALL RECOver
-	wrappedMux = middleware.Recover(logger)(wrappedMux)
+	wrappedMux := middleware.WrapHandler(mux, middleware.Logger(logger), middleware.Recover(logger))
 
 	// Create a new http server with our mux as the handler
 	httpServer := &http.Server{

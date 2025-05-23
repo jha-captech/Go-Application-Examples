@@ -34,7 +34,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to parse id from url",
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
@@ -48,7 +48,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 		err = userDeleter.DeleteUser(ctx, uint64(id))
 		if err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to read user",
 				slog.String("error", err.Error()),
 			)

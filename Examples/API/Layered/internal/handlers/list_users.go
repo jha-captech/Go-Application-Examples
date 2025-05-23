@@ -41,7 +41,7 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.Handler 
 		users, err := usersLister.ListUsers(ctx, name)
 		if err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to list users",
 				slog.String("error", err.Error()),
 			)
@@ -70,9 +70,10 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.Handler 
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to encode response",
-				slog.String("error", err.Error()))
+				slog.String("error", err.Error()),
+			)
 
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}

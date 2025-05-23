@@ -27,24 +27,24 @@ type userCreator interface {
 // @Failure		404		{object}	string
 // @Failure		500		{object}	string
 // @Router			/user  [POST]
-func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		// Request validation
 		request, problems, err := decodeValid[*UserRequest](r)
-
 		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to decode request",
-				slog.String("error", err.Error()))
+				slog.String("error", err.Error()),
+			)
 
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 		if len(problems) > 0 {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
@@ -60,7 +60,7 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 		user, err := userCreator.CreateUser(ctx, modelRequest)
 		if err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to create user",
 				slog.String("error", err.Error()),
 			)
@@ -82,11 +82,12 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to encode response",
-				slog.String("error", err.Error()))
+				slog.String("error", err.Error()),
+			)
 
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
-	})
+	}
 }

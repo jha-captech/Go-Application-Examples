@@ -40,7 +40,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to parse id from url",
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
@@ -55,7 +55,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 
 		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to decode request",
 				slog.String("error", err.Error()))
 
@@ -63,7 +63,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 		}
 		if len(problems) > 0 {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
@@ -79,7 +79,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 		user, err := userUpdater.UpdateUser(ctx, uint64(id), modelRequest)
 		if err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to update user",
 				slog.String("error", err.Error()),
 			)
@@ -101,7 +101,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(response); err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to encode response",
 				slog.String("error", err.Error()))
 
