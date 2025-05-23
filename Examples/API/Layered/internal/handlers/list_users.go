@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -66,16 +65,6 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 		}
 
 		// Encode the response model as JSON
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", err.Error()),
-			)
-
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		encodeResponse(w, logger, http.StatusOK, response)
 	}
 }

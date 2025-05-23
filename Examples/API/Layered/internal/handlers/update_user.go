@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -88,24 +87,12 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 			return
 		}
 
-		// Convert our models.User domain model into a response model.
-		response := UserResponse{
+		// Encode the response model as JSON
+		encodeResponse(w, logger, http.StatusOK, UserResponse{
 			ID:       user.ID,
 			Name:     user.Name,
 			Email:    user.Email,
 			Password: user.Password,
-		}
-
-		// Encode the response model as JSON
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", err.Error()))
-
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		})
 	}
 }

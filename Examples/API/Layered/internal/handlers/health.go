@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 )
@@ -24,8 +23,6 @@ func HandleHealthCheck(logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "health check called")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(healthResponse{Status: "ok"})
+		encodeResponse(w, logger, http.StatusOK, healthResponse{Status: "ok"})
 	}
 }
