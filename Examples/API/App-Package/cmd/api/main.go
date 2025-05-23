@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"go.opentelemetry.io/otel"
 	"golang.org/x/sync/errgroup"
@@ -29,9 +30,6 @@ func main() {
 }
 
 func run(ctx context.Context) (err error) {
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
 	otelShutdownFunc, err := telemetry.SetupOTelSDK(
 		ctx,
 		telemetry.Config{
@@ -56,14 +54,27 @@ func run(ctx context.Context) (err error) {
 		Handler: mux.InstrumentRootHandler("my-service"),
 	}
 
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	eg, ctx := errgroup.WithContext(ctx)
 
 	context.AfterFunc(
 		ctx, func() {
 			eg.Go(
 				func() error {
+					ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+					defer cancel()
+
 					if err := srv.Shutdown(ctx); err != nil {
-						return fmt.Errorf("failed to shutdown server: %w", err)
+						return fmt.Errorf("[in main.run] failed to shutdown server: %w", err)
+					}
+
+					if err := otelShutdownFunc(ctx); err != nil {
+						return fmt.Errorf(
+							"[in main.run] failed to shutdown OpenTelemetry SDK: %w",
+							err,
+						)
 					}
 
 					return nil
