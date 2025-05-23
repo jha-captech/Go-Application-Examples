@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jmoiron/sqlx"
 )
 
 func TestCreateUser(t *testing.T) {
@@ -30,7 +31,12 @@ func TestCreateUser(t *testing.T) {
 			mockError:     nil,
 			inputJSON:     `{"name":"Alice","email":"alice@example.com","password":"supersecret"}`,
 			wantStatus:    201,
-			wantUser:      User{ID: 1, Name: "Alice", Email: "alice@example.com", Password: "supersecret"},
+			wantUser: User{
+				ID:       1,
+				Name:     "Alice",
+				Email:    "alice@example.com",
+				Password: "supersecret",
+			},
 		},
 		"invalid_json": {
 			mockCalled:    false,
@@ -55,12 +61,14 @@ func TestCreateUser(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			logger := slog.Default()
+			logger := slog.New(slog.DiscardHandler)
 			db, mock, err := sqlmock.New()
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
 			defer db.Close()
+
+			sqlxDB := sqlx.NewDb(db, "pgx")
 
 			if tc.mockCalled {
 				mock.
@@ -76,7 +84,7 @@ func TestCreateUser(t *testing.T) {
 
 			req := httptest.NewRequest("POST", "/users", bytes.NewBuffer([]byte(tc.inputJSON)))
 			rec := httptest.NewRecorder()
-			handler := createUser(logger, db)
+			handler := createUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
 
 			if rec.Code != tc.wantStatus {
@@ -94,5 +102,4 @@ func TestCreateUser(t *testing.T) {
 			}
 		})
 	}
-
 }

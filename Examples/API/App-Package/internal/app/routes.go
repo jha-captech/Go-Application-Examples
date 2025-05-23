@@ -1,12 +1,13 @@
 package app
 
 import (
-	"database/sql"
 	"log/slog"
 	"net/http"
+
+	"github.com/jmoiron/sqlx"
 )
 
-func addRoutes(mux *http.ServeMux, logger *slog.Logger, db *sql.DB) {
+func addRoutes(mux *http.ServeMux, logger *slog.Logger, db *sqlx.DB) {
 	mux.Handle("GET /api/user/{id}", readUser(logger, db))
 	mux.Handle("POST /api/user", createUser(logger, db))
 	mux.Handle("PUT /api/user/{id}", updateUser(logger, db))

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jmoiron/sqlx"
 )
 
 func TestUpdateUser(t *testing.T) {
@@ -73,12 +74,14 @@ func TestUpdateUser(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			logger := slog.Default()
+			logger := slog.New(slog.DiscardHandler)
 			db, mock, err := sqlmock.New()
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
 			defer db.Close()
+
+			sqlxDB := sqlx.NewDb(db, "pgx")
 
 			if tc.mockCalled {
 				expect := mock.ExpectQuery(regexp.QuoteMeta(`
@@ -106,7 +109,7 @@ func TestUpdateUser(t *testing.T) {
 			req := httptest.NewRequest("PUT", "/user/"+tc.id, bytes.NewReader(reqBody))
 			req.SetPathValue("id", tc.id)
 			rec := httptest.NewRecorder()
-			handler := updateUser(logger, db)
+			handler := updateUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
 
 			if rec.Code != tc.wantStatus {

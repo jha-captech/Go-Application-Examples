@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // @Summary		Update User
@@ -22,15 +24,20 @@ import (
 // @Failure		404		{object}	string
 // @Failure		500		{object}	string
 // @Router			/user/{id} [PUT]
-func updateUser(logger *slog.Logger, db *sql.DB) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		// Read id from path parameters
 		idStr := r.PathValue("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to parse id from url", slog.String("id", idStr), slog.String("error", err.Error()))
+			logger.ErrorContext(
+				ctx,
+				"failed to parse id from url",
+				slog.String("id", idStr),
+				slog.String("error", err.Error()),
+			)
 			http.Error(w, "Invalid ID", http.StatusBadRequest)
 			return
 		}
@@ -38,7 +45,11 @@ func updateUser(logger *slog.Logger, db *sql.DB) http.Handler {
 		// Read request body
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to read request body", slog.String("error", err.Error()))
+			logger.ErrorContext(
+				ctx,
+				"failed to read request body",
+				slog.String("error", err.Error()),
+			)
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
@@ -51,17 +62,20 @@ func updateUser(logger *slog.Logger, db *sql.DB) http.Handler {
 			return
 		}
 
-		// Update user in db
-		logger.DebugContext(ctx, "Updating user", "id", id)
+		logger.InfoContext(ctx, "Updating user",
+			slog.Int("id", id),
+			slog.String("name", user.Name),
+			slog.String("email", user.Email),
+		)
 
+		// Update user in db
 		query := `
             UPDATE users
             SET name = $1, email = $2, password = $3
             WHERE id = $4
             RETURNING id, name, email, password
         `
-		err = db.QueryRowContext(ctx, query, user.Name, user.Email, user.Password, id).
-			Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+		err = db.GetContext(ctx, &user, query, user.Name, user.Email, user.Password, id)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, "User Not Found", http.StatusNotFound)
@@ -72,6 +86,12 @@ func updateUser(logger *slog.Logger, db *sql.DB) http.Handler {
 			return
 		}
 
+		logger.InfoContext(ctx, "User updated successfully",
+			slog.Uint64("id", uint64(user.ID)),
+			slog.String("name", user.Name),
+			slog.String("email", user.Email),
+		)
+
 		// Respond with updated user
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -79,5 +99,5 @@ func updateUser(logger *slog.Logger, db *sql.DB) http.Handler {
 			logger.ErrorContext(ctx, "failed to encode response", slog.String("error", err.Error()))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
-	})
+	}
 }

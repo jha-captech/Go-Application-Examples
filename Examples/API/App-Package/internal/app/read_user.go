@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // @Summary		Read User
@@ -20,8 +22,8 @@ import (
 // @Failure		404	{object}	string
 // @Failure		500	{object}	string
 // @Router			/user/{id}  [GET]
-func readUser(logger *slog.Logger, db *sql.DB) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		// Read id from path parameters
@@ -31,7 +33,7 @@ func readUser(logger *slog.Logger, db *sql.DB) http.Handler {
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to parse id from url",
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
@@ -42,23 +44,23 @@ func readUser(logger *slog.Logger, db *sql.DB) http.Handler {
 		}
 
 		// Read the user
-		logger.DebugContext(ctx, "Reading user", "id", id)
+		logger.InfoContext(ctx, "Reading user", slog.Int("id", id))
 
-		// Query db
-		row := db.QueryRowContext(
+		var user User
+		err = db.GetContext(
 			ctx,
-			`SELECT id,
+			&user,
+			`
+			SELECT id,
 				name,
 				email,
 				password
 			FROM users
-			WHERE id = $1::int`,
+			WHERE id = $1::int
+			`,
 			id,
 		)
-
-		var user User
-
-		err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+		
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
@@ -66,7 +68,7 @@ func readUser(logger *slog.Logger, db *sql.DB) http.Handler {
 				return
 			default:
 				logger.ErrorContext(
-					r.Context(),
+					ctx,
 					"failed to read user",
 					slog.String("error", err.Error()),
 				)
@@ -81,11 +83,11 @@ func readUser(logger *slog.Logger, db *sql.DB) http.Handler {
 		w.WriteHeader(http.StatusOK)
 		if err := json.NewEncoder(w).Encode(user); err != nil {
 			logger.ErrorContext(
-				r.Context(),
+				ctx,
 				"failed to encode response",
 				slog.String("error", err.Error()))
 
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
-	})
+	}
 }

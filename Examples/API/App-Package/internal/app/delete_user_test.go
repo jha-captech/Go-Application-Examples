@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jmoiron/sqlx"
 )
 
 func TestDeleteUser(t *testing.T) {
@@ -59,12 +60,14 @@ func TestDeleteUser(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			logger := slog.Default()
+			logger := slog.New(slog.DiscardHandler)
 			db, mock, err := sqlmock.New()
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
 			defer db.Close()
+
+			sqlxDB := sqlx.NewDb(db, "pgx")
 
 			if tc.mockCalled {
 				mock.ExpectExec(regexp.QuoteMeta("DELETE FROM users WHERE id = $1")).
@@ -76,7 +79,7 @@ func TestDeleteUser(t *testing.T) {
 			req := httptest.NewRequest("DELETE", "/user/"+tc.id, nil)
 			req.SetPathValue("id", tc.id)
 			rec := httptest.NewRecorder()
-			handler := deleteUser(logger, db)
+			handler := deleteUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
 
 			if rec.Code != tc.wantStatus {

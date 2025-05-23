@@ -1,10 +1,11 @@
 package app
 
 import (
-	"database/sql"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // @Summary		Delete User
@@ -17,15 +18,20 @@ import (
 // @Failure		404	{object}	string
 // @Failure		500	{object}	string
 // @Router			/user/{id} [DELETE]
-func deleteUser(logger *slog.Logger, db *sql.DB) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		// Read id from path parameters
 		idStr := r.PathValue("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to parse id from url", slog.String("id", idStr), slog.String("error", err.Error()))
+			logger.ErrorContext(
+				ctx,
+				"failed to parse id from url",
+				slog.String("id", idStr),
+				slog.String("error", err.Error()),
+			)
 			http.Error(w, "Invalid ID", http.StatusBadRequest)
 			return
 		}
@@ -42,7 +48,11 @@ func deleteUser(logger *slog.Logger, db *sql.DB) http.Handler {
 
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to get rows affected", slog.String("error", err.Error()))
+			logger.ErrorContext(
+				ctx,
+				"failed to get rows affected",
+				slog.String("error", err.Error()),
+			)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -54,5 +64,5 @@ func deleteUser(logger *slog.Logger, db *sql.DB) http.Handler {
 
 		// Respond with no content
 		w.WriteHeader(http.StatusNoContent)
-	})
+	}
 }
