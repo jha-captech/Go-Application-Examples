@@ -23,8 +23,8 @@ type userDeleter interface {
 // @Failure		404	{object}	string
 // @Failure		500	{object}	string
 // @Router			/user/{id}  [DELETE]
-func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		// Read id from path parameters
@@ -59,5 +59,5 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 		// Encode the response model as JSON
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-	})
+	}
 }

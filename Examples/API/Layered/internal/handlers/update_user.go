@@ -29,8 +29,8 @@ type userUpdater interface {
 // @Failure		404		{object}	string
 // @Failure		500		{object}	string
 // @Router			/user/{id}  [PUT]
-func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		// Read id from path parameters
@@ -107,5 +107,5 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
-	})
+	}
 }

@@ -27,8 +27,8 @@ type userReader interface {
 // @Failure		404	{object}	string
 // @Failure		500	{object}	string
 // @Router			/user/{id}  [GET]
-func HandleReadUser(logger *slog.Logger, userReader userReader) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		// Read id from path parameters
@@ -81,5 +81,5 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.Handler {
 
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
-	})
+	}
 }

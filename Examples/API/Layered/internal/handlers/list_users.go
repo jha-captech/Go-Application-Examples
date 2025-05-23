@@ -31,8 +31,8 @@ type listUsersResponse struct {
 // @Failure		404		{object}	string
 // @Failure		500		{object}	string
 // @Router			/user  [GET]
-func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		name := r.URL.Query().Get("name")
@@ -77,5 +77,5 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.Handler 
 
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
-	})
+	}
 }
