@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"testing"
 
-	"example.com/examples/api/layered/internal/handlers/mock"
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -40,11 +39,14 @@ func TestHandleListUser(t *testing.T) {
 			// Create a new logger
 			logger := slog.Default()
 
-			userLister := new(mock.UsersLister)
-			userLister.On("ListUsers", context.Background(), "").Return(tc.wantBody, nil)
+			mockedUserLister := &moqusersLister{
+				ListUsersFunc: func(ctx context.Context, filter string) ([]models.User, error) {
+					return tc.wantBody, nil
+				},
+			}
 
 			// Call the handler
-			handler := HandleListUsers(logger, userLister)
+			handler := HandleListUsers(logger, mockedUserLister)
 
 			handler.ServeHTTP(rec, req)
 			// Check the status code

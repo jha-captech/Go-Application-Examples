@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"testing"
 
-	"example.com/examples/api/layered/internal/handlers/mock"
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -46,11 +45,14 @@ func TestHandleCreateUser(t *testing.T) {
 			// Create a new logger
 			logger := slog.Default()
 
-			userCreator := new(mock.UserCreator)
-			userCreator.On("CreateUser", context.Background(), tc.input).Return(tc.wantBody, nil)
+			mockedUserCreator := &moquserCreator{
+				CreateUserFunc: func(ctx context.Context, user models.User) (models.User, error) {
+					return tc.wantBody, nil
+				},
+			}
 
 			// Call the handler
-			handler := HandleCreateUser(logger, userCreator)
+			handler := HandleCreateUser(logger, mockedUserCreator)
 
 			handler.ServeHTTP(rec, req)
 			// Check the status code

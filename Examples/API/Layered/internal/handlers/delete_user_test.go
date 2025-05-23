@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"testing"
 
-	"example.com/examples/api/layered/internal/handlers/mock"
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -36,11 +35,14 @@ func TestHandleDeleteUser(t *testing.T) {
 			// Create a new logger
 			logger := slog.Default()
 
-			userDeleter := new(mock.UserDeleter)
-			userDeleter.On("DeleteUser", context.Background(), uint64(1)).Return(nil)
+			mockedUserDeleter := &moquserDeleter{
+				DeleteUserFunc: func(ctx context.Context, id uint64) error {
+					return nil
+				},
+			}
 
 			// Call the handler
-			handler := HandleDeleteUser(logger, userDeleter)
+			handler := HandleDeleteUser(logger, mockedUserDeleter)
 
 			handler.ServeHTTP(rec, req)
 			// Check the status code

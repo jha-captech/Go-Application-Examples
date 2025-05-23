@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"example.com/examples/api/layered/internal/handlers/mock"
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -40,10 +39,13 @@ func TestHandleReadUser(t *testing.T) {
 			// Create a new logger
 			logger := slog.Default()
 
-			userReader := new(mock.UserReader)
-			userReader.On("ReadUser", context.Background(), uint64(1)).Return(tc.wantBody, nil)
+			mockedUserReader := &moquserReader{
+				ReadUserFunc: func(ctx context.Context, id uint64) (models.User, error) {
+					return tc.wantBody, nil
+				},
+			}
 			// Call the handler
-			handler := HandleReadUser(logger, userReader)
+			handler := HandleReadUser(logger, mockedUserReader)
 
 			handler.ServeHTTP(rec, req)
 			// Check the status code

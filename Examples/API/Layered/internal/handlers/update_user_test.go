@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"testing"
 
-	"example.com/examples/api/layered/internal/handlers/mock"
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -47,11 +46,14 @@ func TestHandleUpdateUser(t *testing.T) {
 			// Create a new logger
 			logger := slog.Default()
 
-			userUpdater := new(mock.UserUpdater)
-			userUpdater.On("UpdateUser", context.Background(), uint64(1), tc.input).Return(tc.wantBody, nil)
+			mockedUserUpdater := &moquserUpdater{
+				UpdateUserFunc: func(ctx context.Context, id uint64, user models.User) (models.User, error) {
+					return tc.wantBody, nil
+				},
+			}
 
 			// Call the handler
-			handler := HandleUpdateUser(logger, userUpdater)
+			handler := HandleUpdateUser(logger, mockedUserUpdater)
 
 			handler.ServeHTTP(rec, req)
 			// Check the status code
