@@ -15,22 +15,28 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
-	testcases := map[string]struct {
+	type mockDB struct {
 		mockCalled    bool
 		mockInputArgs []driver.Value
 		mockOutput    *sqlmock.Rows
 		mockError     error
-		inputJSON     string
-		wantStatus    int
-		wantUser      User
+	}
+
+	testcases := map[string]struct {
+		mockDB
+		inputJSON  string
+		wantStatus int
+		wantUser   User
 	}{
 		"success": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{"Alice", "alice@example.com", "supersecret"},
-			mockOutput:    sqlmock.NewRows([]string{"id"}).AddRow(1),
-			mockError:     nil,
-			inputJSON:     `{"name":"Alice","email":"alice@example.com","password":"supersecret"}`,
-			wantStatus:    201,
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{"Alice", "alice@example.com", "supersecret"},
+				mockOutput:    sqlmock.NewRows([]string{"id"}).AddRow(1),
+				mockError:     nil,
+			},
+			inputJSON:  `{"name":"Alice","email":"alice@example.com","password":"supersecret"}`,
+			wantStatus: 201,
 			wantUser: User{
 				ID:       1,
 				Name:     "Alice",
@@ -39,24 +45,40 @@ func TestCreateUser(t *testing.T) {
 			},
 		},
 		"invalid_json": {
-			mockCalled:    false,
-			mockInputArgs: nil,
-			mockOutput:    nil,
-			mockError:     nil,
-			inputJSON:     `{"name": "Bob", "email": "bob@example.com", "password": badjson}`,
-			wantStatus:    400,
-			wantUser:      User{},
+			mockDB: mockDB{
+				mockCalled:    false,
+				mockInputArgs: nil,
+				mockOutput:    nil,
+				mockError:     nil,
+			},
+			inputJSON:  `{"name": "Bob", "email": "bob@example.com", "password": password123}`,
+			wantStatus: 400,
+			wantUser:   User{},
+		},
+		"request_validation_error": {
+			mockDB: mockDB{
+				mockCalled:    false,
+				mockInputArgs: nil,
+				mockOutput:    nil,
+				mockError:     nil,
+			},
+			inputJSON:  `{"name": "Bob", "email": "bob@example.com", "password": "pass"}`,
+			wantStatus: 400,
+			wantUser:   User{},
 		},
 		"db_error": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{"Bob", "bob@example.com", "badpass"},
-			mockOutput:    sqlmock.NewRows([]string{"id"}),
-			mockError:     sqlmock.ErrCancelled,
-			inputJSON:     `{"name":"Bob","email":"bob@example.com","password":"badpass"}`,
-			wantStatus:    500,
-			wantUser:      User{},
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{"Bob", "bob@example.com", "badpass"},
+				mockOutput:    sqlmock.NewRows([]string{"id"}),
+				mockError:     sqlmock.ErrCancelled,
+			},
+			inputJSON:  `{"name":"Bob","email":"bob@example.com","password":"password123"}`,
+			wantStatus: 500,
+			wantUser:   User{},
 		},
 	}
+
 	for name, tc := range testcases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()

@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -33,15 +32,10 @@ func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query users", slog.String("error", err.Error()))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(users); err != nil {
-			logger.ErrorContext(ctx, "failed to encode response", slog.String("error", err.Error()))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		encodeResponse(w, logger, http.StatusOK, users)
 	}
 }

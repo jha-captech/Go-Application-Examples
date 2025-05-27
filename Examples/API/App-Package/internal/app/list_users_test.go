@@ -14,17 +14,23 @@ import (
 )
 
 func TestListUsers(t *testing.T) {
+	type mockDB struct {
+		mockRows  *sqlmock.Rows
+		mockError error
+	}
+
 	testcases := map[string]struct {
-		mockRows   *sqlmock.Rows
-		mockError  error
+		mockDB
 		wantStatus int
 		wantUsers  []User
 	}{
 		"success": {
-			mockRows: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
-				AddRow(1, "Alice", "alice@example.com", "pw1").
-				AddRow(2, "Bob", "bob@example.com", "pw2"),
-			mockError:  nil,
+			mockDB: mockDB{
+				mockRows: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
+					AddRow(1, "Alice", "alice@example.com", "pw1").
+					AddRow(2, "Bob", "bob@example.com", "pw2"),
+				mockError: nil,
+			},
 			wantStatus: http.StatusOK,
 			wantUsers: []User{
 				{ID: 1, Name: "Alice", Email: "alice@example.com", Password: "pw1"},
@@ -32,21 +38,27 @@ func TestListUsers(t *testing.T) {
 			},
 		},
 		"empty": {
-			mockRows:   sqlmock.NewRows([]string{"id", "name", "email", "password"}),
-			mockError:  nil,
+			mockDB: mockDB{
+				mockRows:  sqlmock.NewRows([]string{"id", "name", "email", "password"}),
+				mockError: nil,
+			},
 			wantStatus: http.StatusOK,
 			wantUsers:  []User{},
 		},
 		"scan_error": {
-			mockRows: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
-				AddRow("bad_id", "Charlie", "charlie@example.com", "pw3"),
-			mockError:  nil,
+			mockDB: mockDB{
+				mockRows: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
+					AddRow("bad_id", "Charlie", "charlie@example.com", "pw3"),
+				mockError: nil,
+			},
 			wantStatus: http.StatusInternalServerError,
 			wantUsers:  nil,
 		},
 		"db_error": {
-			mockRows:   nil,
-			mockError:  errors.New("db error"),
+			mockDB: mockDB{
+				mockRows:  nil,
+				mockError: errors.New("db error"),
+			},
 			wantStatus: http.StatusInternalServerError,
 			wantUsers:  nil,
 		},

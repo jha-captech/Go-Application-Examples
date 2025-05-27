@@ -1,8 +1,7 @@
 package app
 
 import (
-	"encoding/json"
-	"io"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -23,23 +22,28 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		// Read request body
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
+		// Request validation
+		user, problems, err := decodeValid[User](r)
+		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
 				ctx,
-				"failed to read request body",
-				slog.String("error", err.Error()),
-			)
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+				"failed to decode request",
+				slog.String("error", err.Error()))
+
+			encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+				Title:  "Bad Request",
+				Status: 400,
+				Detail: "Invalid request body.",
+			})
 			return
 		}
-		defer r.Body.Close()
-
-		var user User
-		if err := json.Unmarshal(body, &user); err != nil {
-			logger.ErrorContext(ctx, "failed to unmarshal user", slog.String("error", err.Error()))
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		if len(problems) > 0 {
+			logger.ErrorContext(
+				ctx,
+				"Validation error",
+				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
+			)
+			encodeResponse(w, logger, http.StatusBadRequest, NewValidationBadRequest(problems))
 			return
 		}
 
@@ -57,7 +61,7 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		err = db.GetContext(ctx, &user.ID, query, user.Name, user.Email, user.Password)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to insert user", slog.String("error", err.Error()))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
 			return
 		}
 
@@ -68,11 +72,6 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		)
 
 		// Respond with created user
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		if err := json.NewEncoder(w).Encode(user); err != nil {
-			logger.ErrorContext(ctx, "failed to encode response", slog.String("error", err.Error()))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		encodeResponse(w, logger, http.StatusCreated, user)
 	}
 }

@@ -17,55 +17,77 @@ import (
 )
 
 func TestUpdateUser(t *testing.T) {
-	testcases := map[string]struct {
-		id         string
-		body       any
+	type mockDB struct {
 		mockCalled bool
 		mockArgs   []driver.Value
 		mockRow    *sqlmock.Rows
 		mockError  error
+	}
+
+	testcases := map[string]struct {
+		mockDB
+		id         string
+		body       any
 		wantStatus int
 		wantUser   User
 	}{
 		"success": {
+			mockDB: mockDB{
+				mockCalled: true,
+				mockArgs:   []driver.Value{"Alice", "alice@new.com", "password123", 1},
+				mockRow: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
+					AddRow(1, "Alice", "alice@new.com", "password123"),
+				mockError: nil,
+			},
 			id:         "1",
-			body:       User{Name: "Alice", Email: "alice@new.com", Password: "pw"},
-			mockCalled: true,
-			mockArgs:   []driver.Value{"Alice", "alice@new.com", "pw", 1},
-			mockRow: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
-				AddRow(1, "Alice", "alice@new.com", "pw"),
-			mockError:  nil,
+			body:       User{Name: "Alice", Email: "alice@new.com", Password: "password123"},
 			wantStatus: http.StatusOK,
-			wantUser:   User{ID: 1, Name: "Alice", Email: "alice@new.com", Password: "pw"},
+			wantUser:   User{ID: 1, Name: "Alice", Email: "alice@new.com", Password: "password123"},
 		},
 		"invalid_id": {
+			mockDB: mockDB{
+				mockCalled: false,
+			},
 			id:         "abc",
+			body:       User{Name: "Bob", Email: "bob@new.com", Password: "password123"},
+			wantStatus: http.StatusBadRequest,
+		},
+		"validation_error": {
+			mockDB: mockDB{
+				mockCalled: false,
+			},
+			id:         "1",
 			body:       User{Name: "Bob", Email: "bob@new.com", Password: "pw"},
-			mockCalled: false,
 			wantStatus: http.StatusBadRequest,
 		},
 		"bad_json": {
+			mockDB: mockDB{
+				mockCalled: false,
+			},
 			id:         "2",
 			body:       "{bad json}",
-			mockCalled: false,
 			wantStatus: http.StatusBadRequest,
 		},
 		"not_found": {
+			mockDB: mockDB{
+				mockCalled: true,
+				mockArgs:   []driver.Value{"Carol", "carol@new.com", "password123", 3},
+				mockRow:    sqlmock.NewRows([]string{"id", "name", "email", "password"}),
+				mockError:  sql.ErrNoRows,
+			},
 			id:         "3",
-			body:       User{Name: "Carol", Email: "carol@new.com", Password: "pw"},
-			mockCalled: true,
-			mockArgs:   []driver.Value{"Carol", "carol@new.com", "pw", 3},
-			mockRow:    sqlmock.NewRows([]string{"id", "name", "email", "password"}),
-			mockError:  sql.ErrNoRows,
+			body:       User{Name: "Carol", Email: "carol@new.com", Password: "password123"},
 			wantStatus: http.StatusNotFound,
 		},
 		"db_error": {
+			mockDB: mockDB{
+				mockCalled: true,
+				mockArgs:   []driver.Value{"Dave", "dave@new.com", "password123", 4},
+				mockRow:    sqlmock.NewRows([]string{"id", "name", "email", "password"}),
+				mockError:  errors.New("db error"),
+			},
 			id:         "4",
-			body:       User{Name: "Dave", Email: "dave@new.com", Password: "pw"},
-			mockCalled: true,
-			mockArgs:   []driver.Value{"Dave", "dave@new.com", "pw", 4},
-			mockRow:    sqlmock.NewRows([]string{"id", "name", "email", "password"}),
-			mockError:  errors.New("db error"),
+			body:       User{Name: "Dave", Email: "dave@new.com", Password: "password123"},
 			wantStatus: http.StatusInternalServerError,
 		},
 	}

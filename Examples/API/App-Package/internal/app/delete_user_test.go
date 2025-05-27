@@ -14,45 +14,57 @@ import (
 )
 
 func TestDeleteUser(t *testing.T) {
-	testcases := map[string]struct {
+	type mockDB struct {
 		mockCalled    bool
 		mockInputArgs []driver.Value
 		mockResult    driver.Result
 		mockError     error
-		id            string
-		wantStatus    int
+	}
+
+	testcases := map[string]struct {
+		mockDB
+		id         string
+		wantStatus int
 	}{
 		"success": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{1},
-			mockResult:    sqlmock.NewResult(0, 1), // 1 row affected
-			mockError:     nil,
-			id:            "1",
-			wantStatus:    http.StatusNoContent,
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{1},
+				mockResult:    sqlmock.NewResult(0, 1), // 1 row affected
+				mockError:     nil,
+			},
+			id:         "1",
+			wantStatus: http.StatusNoContent,
 		},
 		"invalid_id": {
-			mockCalled:    false,
-			mockInputArgs: nil,
-			mockResult:    nil,
-			mockError:     nil,
-			id:            "abc",
-			wantStatus:    http.StatusBadRequest,
+			mockDB: mockDB{
+				mockCalled:    false,
+				mockInputArgs: nil,
+				mockResult:    nil,
+				mockError:     nil,
+			},
+			id:         "abc",
+			wantStatus: http.StatusBadRequest,
 		},
 		"db_error": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{2},
-			mockResult:    nil,
-			mockError:     errors.New("db error"),
-			id:            "2",
-			wantStatus:    http.StatusInternalServerError,
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{2},
+				mockResult:    nil,
+				mockError:     errors.New("db error"),
+			},
+			id:         "2",
+			wantStatus: http.StatusInternalServerError,
 		},
 		"not_found": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{3},
-			mockResult:    sqlmock.NewResult(0, 0), // 0 rows affected
-			mockError:     nil,
-			id:            "3",
-			wantStatus:    http.StatusNotFound,
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{3},
+				mockResult:    sqlmock.NewResult(0, 0), // 0 rows affected
+				mockError:     nil,
+			},
+			id:         "3",
+			wantStatus: http.StatusNotFound,
 		},
 	}
 

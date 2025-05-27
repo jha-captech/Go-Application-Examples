@@ -2,9 +2,8 @@ package app
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -38,27 +37,36 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+				Title:  "Invalid ID",
+				Status: http.StatusBadRequest,
+				Detail: "The provided ID is not a valid integer.",
+			})
 			return
 		}
 
-		// Read request body
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
+		// Request validation
+		user, problems, err := decodeValid[User](r)
+		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
 				ctx,
-				"failed to read request body",
-				slog.String("error", err.Error()),
-			)
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+				"failed to decode request",
+				slog.String("error", err.Error()))
+
+			encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+				Title:  "Bad Request",
+				Status: 400,
+				Detail: "Invalid request body.",
+			})
 			return
 		}
-		defer r.Body.Close()
-
-		var user User
-		if err := json.Unmarshal(body, &user); err != nil {
-			logger.ErrorContext(ctx, "failed to unmarshal user", slog.String("error", err.Error()))
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		if len(problems) > 0 {
+			logger.ErrorContext(
+				ctx,
+				"Validation error",
+				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
+			)
+			encodeResponse(w, logger, http.StatusBadRequest, NewValidationBadRequest(problems))
 			return
 		}
 
@@ -78,11 +86,15 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		err = db.GetContext(ctx, &user, query, user.Name, user.Email, user.Password, id)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				http.Error(w, "User Not Found", http.StatusNotFound)
+				encodeResponse(w, logger, http.StatusNotFound, ProblemDetail{
+					Title:  "User Not Found",
+					Status: http.StatusNotFound,
+					Detail: fmt.Sprintf("User with ID %d not found", id),
+				})
 				return
 			}
 			logger.ErrorContext(ctx, "failed to update user", slog.String("error", err.Error()))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
 			return
 		}
 
@@ -93,11 +105,6 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		)
 
 		// Respond with updated user
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(user); err != nil {
-			logger.ErrorContext(ctx, "failed to encode response", slog.String("error", err.Error()))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		encodeResponse(w, logger, http.StatusOK, user)
 	}
 }

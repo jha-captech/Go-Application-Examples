@@ -1,0 +1,823 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>api: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">example.com/examples/api/app-package/cmd/api/main.go (0.0%)</option>
+				
+				<option value="file1">example.com/examples/api/app-package/internal/app/app.go (23.1%)</option>
+				
+				<option value="file2">example.com/examples/api/app-package/internal/app/config.go (0.0%)</option>
+				
+				<option value="file3">example.com/examples/api/app-package/internal/app/create_user.go (100.0%)</option>
+				
+				<option value="file4">example.com/examples/api/app-package/internal/app/delete_user.go (87.0%)</option>
+				
+				<option value="file5">example.com/examples/api/app-package/internal/app/list_users.go (100.0%)</option>
+				
+				<option value="file6">example.com/examples/api/app-package/internal/app/models.go (90.5%)</option>
+				
+				<option value="file7">example.com/examples/api/app-package/internal/app/read_user.go (100.0%)</option>
+				
+				<option value="file8">example.com/examples/api/app-package/internal/app/routes.go (0.0%)</option>
+				
+				<option value="file9">example.com/examples/api/app-package/internal/app/update_user.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "context"
+        "errors"
+        "fmt"
+        "log/slog"
+        "net/http"
+        "os"
+        "os/signal"
+        "syscall"
+
+        "github.com/jmoiron/sqlx"
+        "golang.org/x/sync/errgroup"
+
+        _ "github.com/jackc/pgx/v5/stdlib"
+
+        "example.com/examples/api/app-package/internal/app"
+)
+
+func main() <span class="cov0" title="0">{
+        if err := run(context.Background()); err != nil </span><span class="cov0" title="0">{
+                fmt.Fprintf(os.Stderr, "run failed: %s", err.Error())
+                os.Exit(1)
+        }</span>
+}
+
+func run(ctx context.Context) error <span class="cov0" title="0">{
+        ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+        defer stop()
+
+        // Load and validate environment config
+        cfg, err := app.NewConfig()
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("[in main.run] failed to load config: %w", err)
+        }</span>
+
+        // Create a structured logger, which will print logs in json format to the
+        // writer we specify.
+        <span class="cov0" title="0">logger := slog.New(slog.NewJSONHandler(os.Stdout, &amp;slog.HandlerOptions{
+                Level: cfg.LogLevel,
+        }))
+
+        // Create a new DB connection using environment config
+        logger.DebugContext(ctx, "Connecting to and pinging the database")
+        db, err := sqlx.Connect("pgx", fmt.Sprintf(
+                "host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+                cfg.DBHost,
+                cfg.DBUserName,
+                cfg.DBUserPassword,
+                cfg.DBName,
+                cfg.DBPort,
+        ))
+
+        defer func() </span><span class="cov0" title="0">{
+                logger.DebugContext(ctx, "Closing database connection")
+                if err = db.Close(); err != nil </span><span class="cov0" title="0">{
+                        logger.ErrorContext(ctx, "Failed to close database connection", "err", err)
+                }</span>
+        }()
+
+        <span class="cov0" title="0">handler := app.NewHandler(logger, db)
+
+        // Create a new http server with our mux as the handler
+        httpServer := &amp;http.Server{
+                Addr:    ":8080",
+                Handler: handler,
+        }
+
+        // Create a new errgroup to handle graceful shutdown
+        eg, ctx := errgroup.WithContext(ctx)
+
+        context.AfterFunc(
+                ctx, 
+                func() </span><span class="cov0" title="0">{
+                        eg.Go(
+                                func() error </span><span class="cov0" title="0">{
+                                        if err := httpServer.Shutdown(ctx); err != nil </span><span class="cov0" title="0">{
+                                                return fmt.Errorf("failed to shutdown server: %w", err)
+                                        }</span>
+
+                                        <span class="cov0" title="0">return nil</span>
+                                },
+                        )
+                },
+        )
+
+        // Start the server
+        <span class="cov0" title="0">logger.InfoContext(ctx, "Starting HTTP server", "addr", httpServer.Addr)
+
+        if err = httpServer.ListenAndServe(); err != nil &amp;&amp; !errors.Is(err, http.ErrServerClosed) </span><span class="cov0" title="0">{
+                return fmt.Errorf("[in main.run] failed to listen and serve: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package app
+
+import (
+        "encoding/json"
+        "fmt"
+        "log/slog"
+        "net/http"
+
+        "github.com/jmoiron/sqlx"
+)
+
+func NewHandler(logger *slog.Logger, db *sqlx.DB) http.Handler <span class="cov0" title="0">{
+        mux := http.NewServeMux()
+
+        addRoutes(mux, logger, db)
+
+        return mux
+}</span>
+
+// encodeResponse encodes data as a JSON response.
+func encodeResponse(w http.ResponseWriter, logger *slog.Logger, status int, data any) <span class="cov8" title="1">{
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(status)
+        if err := json.NewEncoder(w).Encode(data); err != nil </span><span class="cov0" title="0">{
+                logger.Error("Error while marshaling data", "err", err, "data", data)
+
+                h := w.Header()
+                h.Del("Content-Length")
+                h.Set("Content-Type", "application/json; charset=utf-8")
+                h.Set("X-Content-Type-Options", "nosniff")
+                w.WriteHeader(http.StatusInternalServerError)
+                _, _ = fmt.Fprintln(w, `{"Error":"Internal server error"}`)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package app
+
+import (
+        "fmt"
+        "log/slog"
+
+        "github.com/caarlos0/env/v11"
+        "github.com/joho/godotenv"
+)
+
+// Config holds the application configuration settings. The configuration is loaded from
+// environment variables.
+type Config struct {
+        DBHost         string     `env:"DATABASE_HOST,required"`
+        DBUserName     string     `env:"DATABASE_USER,required"`
+        DBUserPassword string     `env:"DATABASE_PASSWORD,required"`
+        DBName         string     `env:"DATABASE_NAME,required"`
+        DBPort         string     `env:"DATABASE_PORT,required"`
+        Host           string     `env:"HOST,required"`
+        Port           string     `env:"PORT,required"`
+        LogLevel       slog.Level `env:"LOG_LEVEL,required"`
+}
+
+// NewConfig loads configuration from environment variables and a .env file, and returns a
+// Config struct or error.
+func NewConfig() (Config, error) <span class="cov0" title="0">{
+        // Load values from a .env file and add them to system environment variables.
+        // Discard errors coming from this function. This allows us to call this
+        // function without a .env file which will by default load values directly
+        // from system environment variables.
+        _ = godotenv.Load()
+
+        // Once values have been loaded into system env vars, parse those into our
+        // config struct and validate them returning any errors.
+        cfg, err := env.ParseAs[Config]()
+        if err != nil </span><span class="cov0" title="0">{
+                return Config{}, fmt.Errorf("[in config.New] failed to parse config: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return cfg, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package app
+
+import (
+        "fmt"
+        "log/slog"
+        "net/http"
+
+        "github.com/jmoiron/sqlx"
+)
+
+// @Summary                Create User
+// @Description        Create a new user
+// @Tags                        user
+// @Accept                        json
+// @Produce                json
+// @Param                        user        body                User        true        "User data"
+// @Success                201                {object}        User
+// @Failure                400                {object}        string
+// @Failure                500                {object}        string
+// @Router                        /user [POST]
+func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc <span class="cov8" title="1">{
+        return func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                ctx := r.Context()
+
+                // Request validation
+                user, problems, err := decodeValid[User](r)
+                if err != nil &amp;&amp; len(problems) == 0 </span><span class="cov8" title="1">{
+                        logger.ErrorContext(
+                                ctx,
+                                "failed to decode request",
+                                slog.String("error", err.Error()))
+
+                        encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+                                Title:  "Bad Request",
+                                Status: 400,
+                                Detail: "Invalid request body.",
+                        })
+                        return
+                }</span>
+                <span class="cov8" title="1">if len(problems) &gt; 0 </span><span class="cov8" title="1">{
+                        logger.ErrorContext(
+                                ctx,
+                                "Validation error",
+                                slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
+                        )
+                        encodeResponse(w, logger, http.StatusBadRequest, NewValidationBadRequest(problems))
+                        return
+                }</span>
+
+                <span class="cov8" title="1">logger.InfoContext(ctx, "Creating user",
+                        slog.String("name", user.Name),
+                        slog.String("email", user.Email),
+                )
+
+                // Insert user into db
+                query := `
+                        INSERT INTO users (name, email, password)
+                        VALUES ($1, $2, $3)
+                        RETURNING id
+                `
+                err = db.GetContext(ctx, &amp;user.ID, query, user.Name, user.Email, user.Password)
+                if err != nil </span><span class="cov8" title="1">{
+                        logger.ErrorContext(ctx, "failed to insert user", slog.String("error", err.Error()))
+                        encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
+                        return
+                }</span>
+
+                <span class="cov8" title="1">logger.InfoContext(ctx, "User created successfully",
+                        slog.Uint64("id", uint64(user.ID)),
+                        slog.String("name", user.Name),
+                        slog.String("email", user.Email),
+                )
+
+                // Respond with created user
+                encodeResponse(w, logger, http.StatusCreated, user)</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package app
+
+import (
+        "fmt"
+        "log/slog"
+        "net/http"
+        "strconv"
+
+        "github.com/jmoiron/sqlx"
+)
+
+// @Summary                Delete User
+// @Description        Delete a user by ID
+// @Tags                        user
+// @Produce                json
+// @Param                        id        path        string        true        "User ID"
+// @Success                204        {string}        string        ""
+// @Failure                400        {object}        string
+// @Failure                404        {object}        string
+// @Failure                500        {object}        string
+// @Router                        /user/{id} [DELETE]
+func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc <span class="cov8" title="1">{
+        return func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                ctx := r.Context()
+
+                // Read id from path parameters
+                idStr := r.PathValue("id")
+                id, err := strconv.Atoi(idStr)
+                if err != nil </span><span class="cov8" title="1">{
+                        logger.ErrorContext(
+                                ctx,
+                                "failed to parse id from url",
+                                slog.String("id", idStr),
+                                slog.String("error", err.Error()),
+                        )
+                        encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+                                Title:  "Invalid ID",
+                                Status: http.StatusBadRequest,
+                                Detail: "The provided ID is not a valid integer.",
+                        })
+                        return
+                }</span>
+
+                // Delete user from db
+                <span class="cov8" title="1">logger.DebugContext(ctx, "Deleting user", "id", id)
+
+                result, err := db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", id)
+                if err != nil </span><span class="cov8" title="1">{
+                        logger.ErrorContext(ctx, "failed to delete user", slog.String("error", err.Error()))
+                        encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
+                        return
+                }</span>
+
+                <span class="cov8" title="1">rowsAffected, err := result.RowsAffected()
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.ErrorContext(
+                                ctx,
+                                "failed to get rows affected",
+                                slog.String("error", err.Error()),
+                        )
+                        encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
+                        return
+                }</span>
+
+                <span class="cov8" title="1">if rowsAffected == 0 </span><span class="cov8" title="1">{
+                        encodeResponse(w, logger, http.StatusNotFound, ProblemDetail{
+                                Title:  "User Not Found",
+                                Status: http.StatusNotFound,
+                                Detail: fmt.Sprintf("User with ID %d not found", id),
+                        })
+                        return
+                }</span>
+
+                // Respond with no content
+                <span class="cov8" title="1">w.WriteHeader(http.StatusNoContent)</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package app
+
+import (
+        "log/slog"
+        "net/http"
+
+        "github.com/jmoiron/sqlx"
+)
+
+// @Summary                List Users
+// @Description        List all users
+// @Tags                        user
+// @Produce                json
+// @Success                200        {array}        User
+// @Failure                500        {object}        string
+// @Router                        /user [GET]
+func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc <span class="cov8" title="1">{
+        return func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                ctx := r.Context()
+
+                logger.InfoContext(ctx, "Listing all users")
+
+                var users []User
+                err := db.SelectContext(
+                        ctx,
+                        &amp;users,
+                        `
+            SELECT id, name, email, password
+            FROM users
+            `,
+                )
+
+                if err != nil </span><span class="cov8" title="1">{
+                        logger.ErrorContext(ctx, "failed to query users", slog.String("error", err.Error()))
+                        encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
+                        return
+                }</span>
+
+                <span class="cov8" title="1">encodeResponse(w, logger, http.StatusOK, users)</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package app
+
+import (
+        "encoding/json"
+        "errors"
+        "fmt"
+        "net/http"
+
+        "github.com/go-playground/validator/v10"
+)
+
+type User struct {
+        ID       uint   `json:"id"`
+        Name     string `json:"name"     validate:"required,min=2,max=50"`
+        Email    string `json:"email"    validate:"required,email"`
+        Password string `json:"password" validate:"required,min=8,max=30"`
+}
+
+// ProblemDetail represents the structure for problem details as per RFC 7807.
+type ProblemDetail struct {
+        Title  string `json:"title"`  // A short, human-readable summary of the problem.
+        Status int    `json:"status"` // The HTTP status code generated by the origin server.
+        Detail string `json:"detail"` // A human-readable explanation specific to this occurrence of the problem.
+}
+
+type ProblemDetailValidation struct {
+        ProblemDetail
+        InvalidParams []validationProblem `json:"invalidParams"` // A list of invalid parameters with error details.
+}
+
+type validationProblem struct {
+        Field   string `json:"field"`
+        Code    string `json:"code"`
+        Message string `json:"message"`
+}
+
+// decodeValid decodes a model from an http request and performs validation
+// on it.
+func decodeValid[T any](r *http.Request) (T, []validationProblem, error) <span class="cov8" title="1">{
+        var v T
+        if err := json.NewDecoder(r.Body).Decode(&amp;v); err != nil </span><span class="cov8" title="1">{
+                return v, []validationProblem{}, fmt.Errorf(
+                        "[in handlers.decodeValid] decode body failed: %w",
+                        err,
+                )
+        }</span>
+
+        <span class="cov8" title="1">problems, err := validate(&amp;v)
+        if err != nil </span><span class="cov0" title="0">{
+                return v, []validationProblem{}, fmt.Errorf(
+                        "[in handlers.decodeValid] validate failed: %w",
+                        err,
+                )
+        }</span>
+
+        <span class="cov8" title="1">if len(problems) &gt; 0 </span><span class="cov8" title="1">{
+                validationProblems := make([]validationProblem, len(problems))
+                for i, problem := range problems </span><span class="cov8" title="1">{
+                        validationProblems[i] = validationProblem{
+                                Field:   problem.Field(),
+                                Code:    problem.Tag(),
+                                Message: problem.Error(),
+                        }
+                }</span>
+
+                <span class="cov8" title="1">return v, validationProblems, nil</span>
+        }
+
+        <span class="cov8" title="1">return v, []validationProblem{}, nil</span>
+}
+
+func validate[T any](data *T, options ...validator.Option) ([]validator.FieldError, error) <span class="cov8" title="1">{
+        v := validator.New(options...)
+        if err := v.Struct(data); err != nil </span><span class="cov8" title="1">{
+                var invalidValidationError *validator.InvalidValidationError
+                if errors.As(err, &amp;invalidValidationError) </span><span class="cov0" title="0">{
+                        return []validator.FieldError{}, fmt.Errorf(
+                                "[in handlers.validate] invalid validation error: %w",
+                                err,
+                        )
+                }</span>
+                <span class="cov8" title="1">return err.(validator.ValidationErrors), nil</span>
+        }
+        <span class="cov8" title="1">return []validator.FieldError{}, nil</span>
+}
+
+// NewValidationBadRequest creates a ProblemDetailValidation instance for a 400 Bad Request validation error.
+func NewValidationBadRequest(invalidParams []validationProblem) ProblemDetailValidation <span class="cov8" title="1">{
+ return ProblemDetailValidation{
+  ProblemDetail: ProblemDetail{
+   Title:  "Bad Request",
+   Status: 400,
+   Detail: "The request contains invalid parameters.",
+  },
+  InvalidParams: invalidParams,
+ }
+}</span>
+
+func NewInternalServerError() ProblemDetail <span class="cov8" title="1">{
+        return ProblemDetail{
+                Title:  "Internal Server Error",
+                Status: 500,
+                Detail: "An unexpected error occurred.",
+        }
+}</pre>
+		
+		<pre class="file" id="file7" style="display: none">package app
+
+import (
+        "database/sql"
+        "errors"
+        "fmt"
+        "log/slog"
+        "net/http"
+        "strconv"
+
+        "github.com/jmoiron/sqlx"
+)
+
+// @Summary                Read User
+// @Description        Read User by ID
+// @Tags                        user
+// @Accept                        json
+// @Produce                json
+// @Param                        id        path                string        true        "User ID"
+// @Success                200        {object}        models.User
+// @Failure                400        {object}        string
+// @Failure                404        {object}        string
+// @Failure                500        {object}        string
+// @Router                        /user/{id}  [GET]
+func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc <span class="cov8" title="1">{
+        return func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                ctx := r.Context()
+
+                // Read id from path parameters
+                idStr := r.PathValue("id")
+                id, err := strconv.Atoi(idStr)
+                if err != nil </span><span class="cov8" title="1">{
+                        logger.ErrorContext(
+                                ctx,
+                                "failed to parse id from url",
+                                slog.String("id", idStr),
+                                slog.String("error", err.Error()),
+                        )
+                        encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+                                Title:  "Invalid ID",
+                                Status: http.StatusBadRequest,
+                                Detail: "The provided ID is not a valid integer.",
+                        })
+                        return
+                }</span>
+
+                // Read the user
+                <span class="cov8" title="1">logger.InfoContext(ctx, "Reading user", slog.Int("id", id))
+
+                var user User
+                err = db.GetContext(
+                        ctx,
+                        &amp;user,
+                        `
+                        SELECT id,
+                                name,
+                                email,
+                                password
+                        FROM users
+                        WHERE id = $1::int
+                        `,
+                        id,
+                )
+
+                if err != nil </span><span class="cov8" title="1">{
+                        switch </span>{
+                        case errors.Is(err, sql.ErrNoRows):<span class="cov8" title="1">
+                                encodeResponse(w, logger, http.StatusNotFound, ProblemDetail{
+                                        Title:  "User Not Found",
+                                        Status: http.StatusNotFound,
+                                        Detail: fmt.Sprintf("User with ID %d not found", id),
+                                })
+                                return</span>
+                        default:<span class="cov8" title="1">
+                                logger.ErrorContext(
+                                        ctx,
+                                        "failed to read user",
+                                        slog.String("error", err.Error()),
+                                )
+                                encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
+                                return</span>
+                        }
+                }
+
+                // Respond with user as JSON
+                <span class="cov8" title="1">encodeResponse(w, logger, http.StatusOK, user)</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package app
+
+import (
+        "log/slog"
+        "net/http"
+
+        "github.com/jmoiron/sqlx"
+)
+
+func addRoutes(mux *http.ServeMux, logger *slog.Logger, db *sqlx.DB) <span class="cov0" title="0">{
+        mux.Handle("GET /api/user/{id}", readUser(logger, db))
+        mux.Handle("POST /api/user", createUser(logger, db))
+        mux.Handle("PUT /api/user/{id}", updateUser(logger, db))
+        mux.Handle("DELETE /api/user/{id}", deleteUser(logger, db))
+        mux.Handle("GET /api/users", listUsers(logger, db))
+}</span>
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package app
+
+import (
+        "database/sql"
+        "errors"
+        "fmt"
+        "log/slog"
+        "net/http"
+        "strconv"
+
+        "github.com/jmoiron/sqlx"
+)
+
+// @Summary                Update User
+// @Description        Update user fields by ID
+// @Tags                        user
+// @Accept                        json
+// @Produce                json
+// @Param                        id                path        string        true        "User ID"
+// @Param                        user        body        User        true        "User data"
+// @Success                200                {object}        User
+// @Failure                400                {object}        string
+// @Failure                404                {object}        string
+// @Failure                500                {object}        string
+// @Router                        /user/{id} [PUT]
+func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc <span class="cov8" title="1">{
+        return func(w http.ResponseWriter, r *http.Request) </span><span class="cov8" title="1">{
+                ctx := r.Context()
+
+                // Read id from path parameters
+                idStr := r.PathValue("id")
+                id, err := strconv.Atoi(idStr)
+                if err != nil </span><span class="cov8" title="1">{
+                        logger.ErrorContext(
+                                ctx,
+                                "failed to parse id from url",
+                                slog.String("id", idStr),
+                                slog.String("error", err.Error()),
+                        )
+                        encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+                                Title:  "Invalid ID",
+                                Status: http.StatusBadRequest,
+                                Detail: "The provided ID is not a valid integer.",
+                        })
+                        return
+                }</span>
+
+                // Request validation
+                <span class="cov8" title="1">user, problems, err := decodeValid[User](r)
+                if err != nil &amp;&amp; len(problems) == 0 </span><span class="cov8" title="1">{
+                        logger.ErrorContext(
+                                ctx,
+                                "failed to decode request",
+                                slog.String("error", err.Error()))
+
+                        encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+                                Title:  "Bad Request",
+                                Status: 400,
+                                Detail: "Invalid request body.",
+                        })
+                        return
+                }</span>
+                <span class="cov8" title="1">if len(problems) &gt; 0 </span><span class="cov8" title="1">{
+                        logger.ErrorContext(
+                                ctx,
+                                "Validation error",
+                                slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
+                        )
+                        encodeResponse(w, logger, http.StatusBadRequest, NewValidationBadRequest(problems))
+                        return
+                }</span>
+
+                <span class="cov8" title="1">logger.InfoContext(ctx, "Updating user",
+                        slog.Int("id", id),
+                        slog.String("name", user.Name),
+                        slog.String("email", user.Email),
+                )
+
+                // Update user in db
+                query := `
+            UPDATE users
+            SET name = $1, email = $2, password = $3
+            WHERE id = $4
+            RETURNING id, name, email, password
+        `
+                err = db.GetContext(ctx, &amp;user, query, user.Name, user.Email, user.Password, id)
+                if err != nil </span><span class="cov8" title="1">{
+                        if errors.Is(err, sql.ErrNoRows) </span><span class="cov8" title="1">{
+                                encodeResponse(w, logger, http.StatusNotFound, ProblemDetail{
+                                        Title:  "User Not Found",
+                                        Status: http.StatusNotFound,
+                                        Detail: fmt.Sprintf("User with ID %d not found", id),
+                                })
+                                return
+                        }</span>
+                        <span class="cov8" title="1">logger.ErrorContext(ctx, "failed to update user", slog.String("error", err.Error()))
+                        encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
+                        return</span>
+                }
+
+                <span class="cov8" title="1">logger.InfoContext(ctx, "User updated successfully",
+                        slog.Uint64("id", uint64(user.ID)),
+                        slog.String("name", user.Name),
+                        slog.String("email", user.Email),
+                )
+
+                // Respond with updated user
+                encodeResponse(w, logger, http.StatusOK, user)</span>
+        }
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

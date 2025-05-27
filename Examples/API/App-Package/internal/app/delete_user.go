@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -32,7 +33,11 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+				Title:  "Invalid ID",
+				Status: http.StatusBadRequest,
+				Detail: "The provided ID is not a valid integer.",
+			})
 			return
 		}
 
@@ -42,7 +47,7 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		result, err := db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", id)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to delete user", slog.String("error", err.Error()))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
 			return
 		}
 
@@ -53,12 +58,16 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"failed to get rows affected",
 				slog.String("error", err.Error()),
 			)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
 			return
 		}
 
 		if rowsAffected == 0 {
-			http.Error(w, "User Not Found", http.StatusNotFound)
+			encodeResponse(w, logger, http.StatusNotFound, ProblemDetail{
+				Title:  "User Not Found",
+				Status: http.StatusNotFound,
+				Detail: fmt.Sprintf("User with ID %d not found", id),
+			})
 			return
 		}
 

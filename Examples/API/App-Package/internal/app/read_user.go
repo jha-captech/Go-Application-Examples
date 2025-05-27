@@ -2,8 +2,8 @@ package app
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -28,8 +28,6 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 
 		// Read id from path parameters
 		idStr := r.PathValue("id")
-
-		// Convert the ID from string to int
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
 			logger.ErrorContext(
@@ -38,8 +36,11 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-
-			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+				Title:  "Invalid ID",
+				Status: http.StatusBadRequest,
+				Detail: "The provided ID is not a valid integer.",
+			})
 			return
 		}
 
@@ -60,11 +61,15 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			`,
 			id,
 		)
-		
+
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
-				http.Error(w, "User Not Found", http.StatusNotFound)
+				encodeResponse(w, logger, http.StatusNotFound, ProblemDetail{
+					Title:  "User Not Found",
+					Status: http.StatusNotFound,
+					Detail: fmt.Sprintf("User with ID %d not found", id),
+				})
 				return
 			default:
 				logger.ErrorContext(
@@ -72,22 +77,12 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 					"failed to read user",
 					slog.String("error", err.Error()),
 				)
-
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
 				return
 			}
 		}
 
-		// Encode the user model as JSON
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(user); err != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", err.Error()))
-
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		// Respond with user as JSON
+		encodeResponse(w, logger, http.StatusOK, user)
 	}
 }
