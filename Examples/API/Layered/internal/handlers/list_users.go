@@ -45,7 +45,14 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 				slog.String("error", err.Error()),
 			)
 
-			encodeResponse(w, logger, http.StatusInternalServerError, "Internal Server Error")
+			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
@@ -65,6 +72,13 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 		}
 
 		// Encode the response model as JSON
-		encodeResponse(w, logger, http.StatusOK, response)
+		encodeErr := encodeResponse(w, http.StatusOK, response)
+		if encodeErr != nil {
+			logger.ErrorContext(
+				ctx,
+				"failed to encode response",
+				slog.String("error", encodeErr.Error()),
+			)
+		}
 	}
 }

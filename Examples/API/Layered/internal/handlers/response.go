@@ -3,22 +3,18 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 )
 
 // encodeResponse encodes data as a JSON response.
-func encodeResponse(w http.ResponseWriter, logger *slog.Logger, status int, data any) {
+// It is important to note that once w.WriteHeader is called, the response headers are sent.
+// Any subsequent calls to w.WriteHeader will have no effect.
+func encodeResponse(w http.ResponseWriter, status int, data any) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		logger.Error("Error while marshaling data", "err", err, "data", data)
 
-		h := w.Header()
-		h.Del("Content-Length")
-		h.Set("Content-Type", "application/json; charset=utf-8")
-		h.Set("X-Content-Type-Options", "nosniff")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = fmt.Fprintln(w, `{"Error":"Internal server error"}`)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		return fmt.Errorf("failed to encode response: %w", err)
 	}
+	return nil
 }

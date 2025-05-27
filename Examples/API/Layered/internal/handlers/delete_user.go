@@ -40,7 +40,18 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			encodeResponse(w, logger, http.StatusBadRequest, "Invalid ID")
+			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+				Title:  "Invalid ID",
+				Status: http.StatusBadRequest,
+				Detail: "The provided ID is not a valid integer.",
+			})
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
@@ -53,7 +64,14 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			encodeResponse(w, logger, http.StatusInternalServerError, "Internal Server Error")
+			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 		// Encode the response model as JSON

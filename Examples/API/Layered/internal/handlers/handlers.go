@@ -84,3 +84,11 @@ func NewValidationBadRequest(invalidParams []validationProblem) ProblemDetailVal
 		InvalidParams: invalidParams,
 	}
 }
+
+func NewInternalServerError() ProblemDetail {
+	return ProblemDetail{
+		Title:  "Internal Server Error",
+		Status: 500,
+		Detail: "An unexpected error occurred.",
+	}
+}

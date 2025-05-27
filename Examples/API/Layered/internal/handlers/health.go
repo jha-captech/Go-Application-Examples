@@ -23,6 +23,15 @@ func HandleHealthCheck(logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.InfoContext(r.Context(), "health check called")
 
-		encodeResponse(w, logger, http.StatusOK, healthResponse{Status: "ok"})
+		encodeErr := encodeResponse(w, http.StatusOK, healthResponse{Status: "ok"})
+		if encodeErr != nil {
+			logger.ErrorContext(
+				r.Context(),
+				"failed to encode response",
+				slog.String("error", encodeErr.Error()),
+			)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 }
