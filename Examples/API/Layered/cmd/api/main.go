@@ -10,14 +10,16 @@ import (
 	"os/signal"
 	"syscall"
 
-	"example.com/examples/api/layered/internal/config"
-	"example.com/examples/api/layered/internal/middleware"
-	"example.com/examples/api/layered/internal/routes"
-	"example.com/examples/api/layered/internal/services"
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/sync/errgroup"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/jmoiron/sqlx"
+
+	"example.com/examples/api/layered/internal/config"
+	"example.com/examples/api/layered/internal/ctxlogger"
+	"example.com/examples/api/layered/internal/middleware"
+	"example.com/examples/api/layered/internal/routes"
+	"example.com/examples/api/layered/internal/services"
 )
 
 func main() {
@@ -40,20 +42,29 @@ func run(ctx context.Context) error {
 
 	// Create a structured logger, which will print logs in json format to the
 	// writer we specify.
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: cfg.LogLevel,
-	}))
+	logger := slog.New(
+		ctxlogger.WrapSlogHandler(
+			slog.NewJSONHandler(
+				os.Stdout, &slog.HandlerOptions{
+					Level: cfg.LogLevel,
+				},
+			),
+			ctxlogger.WithAtterFunc(middleware.GetRaceIDAsAtter),
+		),
+	)
 
 	// Create a new DB connection using environment config
 	logger.DebugContext(ctx, "Connecting to and pinging the database")
-	db, err := sqlx.Connect("pgx", fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		cfg.DBHost,
-		cfg.DBUserName,
-		cfg.DBUserPassword,
-		cfg.DBName,
-		cfg.DBPort,
-	))
+	db, err := sqlx.Connect(
+		"pgx", fmt.Sprintf(
+			"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+			cfg.DBHost,
+			cfg.DBUserName,
+			cfg.DBUserPassword,
+			cfg.DBName,
+			cfg.DBPort,
+		),
+	)
 	if err != nil {
 		return fmt.Errorf("[in main.run] failed to open/ping database: %w", err)
 	}
@@ -77,7 +88,12 @@ func run(ctx context.Context) error {
 	routes.AddRoutes(mux, logger, usersService)
 
 	// Wrap the mux with middleware
-	wrappedMux := middleware.WrapHandler(mux, middleware.Logger(logger), middleware.Recover(logger))
+	wrappedMux := middleware.WrapHandler(
+		mux,
+		middleware.TraceID(),
+		middleware.Logger(logger),
+		middleware.Recover(logger),
+	)
 
 	// Create a new http server with our mux as the handler
 	srv := &http.Server{

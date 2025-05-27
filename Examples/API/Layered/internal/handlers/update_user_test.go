@@ -34,40 +34,46 @@ func TestHandleUpdateUser(t *testing.T) {
 		},
 	}
 	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			// Create a new request
-			reqBody, _ := json.Marshal(tc.input)
-			req := httptest.NewRequest("PUT", "/users", bytes.NewBuffer(reqBody))
-			req.SetPathValue("id", "1")
+		t.Run(
+			name, func(t *testing.T) {
+				// Create a new request
+				reqBody, _ := json.Marshal(tc.input)
+				req := httptest.NewRequest("PUT", "/users", bytes.NewBuffer(reqBody))
+				req.SetPathValue("id", "1")
 
-			// Create a new response recorder
-			rec := httptest.NewRecorder()
+				// Create a new response recorder
+				rec := httptest.NewRecorder()
 
-			// Create a new logger
-			logger := slog.Default()
+				// Create a new ctxlogger
+				logger := slog.Default()
 
-			mockedUserUpdater := &moquserUpdater{
-				UpdateUserFunc: func(ctx context.Context, id uint64, user models.User) (models.User, error) {
-					return tc.wantBody, nil
-				},
-			}
+				mockedUserUpdater := &moquserUpdater{
+					UpdateUserFunc: func(
+						ctx context.Context,
+						id uint64,
+						user models.User,
+					) (models.User, error) {
+						return tc.wantBody, nil
+					},
+				}
 
-			// Call the handler
-			handler := HandleUpdateUser(logger, mockedUserUpdater)
+				// Call the handler
+				handler := HandleUpdateUser(logger, mockedUserUpdater)
 
-			handler.ServeHTTP(rec, req)
-			// Check the status code
-			if rec.Code != tc.wantStatus {
-				t.Errorf("want status %d, got %d", tc.wantStatus, rec.Code)
-			}
+				handler.ServeHTTP(rec, req)
+				// Check the status code
+				if rec.Code != tc.wantStatus {
+					t.Errorf("want status %d, got %d", tc.wantStatus, rec.Code)
+				}
 
-			// Check the body
-			var respBody models.User
-			_ = json.Unmarshal(rec.Body.Bytes(), &respBody)
+				// Check the body
+				var respBody models.User
+				_ = json.Unmarshal(rec.Body.Bytes(), &respBody)
 
-			if !reflect.DeepEqual(respBody, tc.wantBody) {
-				t.Errorf("want body %q, got %q", tc.wantBody, rec.Body.String())
-			}
-		})
+				if !reflect.DeepEqual(respBody, tc.wantBody) {
+					t.Errorf("want body %q, got %q", tc.wantBody, rec.Body.String())
+				}
+			},
+		)
 	}
 }

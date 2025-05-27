@@ -18,28 +18,30 @@ func TestHandleHealthCheck(t *testing.T) {
 		},
 	}
 	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			// Create a new request
-			req := httptest.NewRequest("GET", "/health", nil)
+		t.Run(
+			name, func(t *testing.T) {
+				// Create a new request
+				req := httptest.NewRequest("GET", "/health", nil)
 
-			// Create a new response recorder
-			rec := httptest.NewRecorder()
+				// Create a new response recorder
+				rec := httptest.NewRecorder()
 
-			// Create a new logger
-			logger := slog.Default()
+				// Create a new ctxlogger
+				logger := slog.Default()
 
-			// Call the handler
-			HandleHealthCheck(logger)(rec, req)
+				// Call the handler
+				HandleHealthCheck(logger)(rec, req)
 
-			// Check the status code
-			if rec.Code != tc.wantStatus {
-				t.Errorf("want status %d, got %d", tc.wantStatus, rec.Code)
-			}
+				// Check the status code
+				if rec.Code != tc.wantStatus {
+					t.Errorf("want status %d, got %d", tc.wantStatus, rec.Code)
+				}
 
-			// Check the body
-			if strings.Trim(rec.Body.String(), "\n") != tc.wantBody {
-				t.Errorf("want body %q, got %q", tc.wantBody, rec.Body.String())
-			}
-		})
+				// Check the body
+				if strings.Trim(rec.Body.String(), "\n") != tc.wantBody {
+					t.Errorf("want body %q, got %q", tc.wantBody, rec.Body.String())
+				}
+			},
+		)
 	}
 }
