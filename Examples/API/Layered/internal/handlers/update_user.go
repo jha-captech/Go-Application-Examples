@@ -50,8 +50,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 		}
 
 		// Request validation
-		request, problems, err := decodeValid[*UserRequest](r)
-
+		request, problems, err := decodeValid[UserRequest](r)
 		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
 				ctx,
@@ -66,6 +65,8 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
+
+			NewValidationBadRequest(problems)
 		}
 
 		modelRequest := models.User{

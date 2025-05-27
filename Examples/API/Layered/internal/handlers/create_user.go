@@ -31,7 +31,7 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 		ctx := r.Context()
 
 		// Request validation
-		request, problems, err := decodeValid[*UserRequest](r)
+		request, problems, err := decodeValid[UserRequest](r)
 		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
 				ctx,
@@ -39,6 +39,7 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				slog.String("error", err.Error()),
 			)
 
+			// replace with json decoder helper with error from decoder
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		}
 		if len(problems) > 0 {
