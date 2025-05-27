@@ -11,56 +11,86 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jmoiron/sqlx"
 )
 
 func TestCreateUser(t *testing.T) {
-	testcases := map[string]struct {
+	type mockDB struct {
 		mockCalled    bool
 		mockInputArgs []driver.Value
 		mockOutput    *sqlmock.Rows
 		mockError     error
-		inputJSON     string
-		wantStatus    int
-		wantUser      User
+	}
+
+	testcases := map[string]struct {
+		mockDB
+		inputJSON  string
+		wantStatus int
+		wantUser   User
 	}{
 		"success": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{"Alice", "alice@example.com", "supersecret"},
-			mockOutput:    sqlmock.NewRows([]string{"id"}).AddRow(1),
-			mockError:     nil,
-			inputJSON:     `{"name":"Alice","email":"alice@example.com","password":"supersecret"}`,
-			wantStatus:    201,
-			wantUser:      User{ID: 1, Name: "Alice", Email: "alice@example.com", Password: "supersecret"},
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{"Alice", "alice@example.com", "supersecret"},
+				mockOutput:    sqlmock.NewRows([]string{"id"}).AddRow(1),
+				mockError:     nil,
+			},
+			inputJSON:  `{"name":"Alice","email":"alice@example.com","password":"supersecret"}`,
+			wantStatus: 201,
+			wantUser: User{
+				ID:       1,
+				Name:     "Alice",
+				Email:    "alice@example.com",
+				Password: "supersecret",
+			},
 		},
 		"invalid_json": {
-			mockCalled:    false,
-			mockInputArgs: nil,
-			mockOutput:    nil,
-			mockError:     nil,
-			inputJSON:     `{"name": "Bob", "email": "bob@example.com", "password": badjson}`,
-			wantStatus:    400,
-			wantUser:      User{},
+			mockDB: mockDB{
+				mockCalled:    false,
+				mockInputArgs: nil,
+				mockOutput:    nil,
+				mockError:     nil,
+			},
+			inputJSON:  `{"name": "Bob", "email": "bob@example.com", "password": password123}`,
+			wantStatus: 400,
+			wantUser:   User{},
+		},
+		"request_validation_error": {
+			mockDB: mockDB{
+				mockCalled:    false,
+				mockInputArgs: nil,
+				mockOutput:    nil,
+				mockError:     nil,
+			},
+			inputJSON:  `{"name": "Bob", "email": "bob@example.com", "password": "pass"}`,
+			wantStatus: 400,
+			wantUser:   User{},
 		},
 		"db_error": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{"Bob", "bob@example.com", "badpass"},
-			mockOutput:    sqlmock.NewRows([]string{"id"}),
-			mockError:     sqlmock.ErrCancelled,
-			inputJSON:     `{"name":"Bob","email":"bob@example.com","password":"badpass"}`,
-			wantStatus:    500,
-			wantUser:      User{},
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{"Bob", "bob@example.com", "badpass"},
+				mockOutput:    sqlmock.NewRows([]string{"id"}),
+				mockError:     sqlmock.ErrCancelled,
+			},
+			inputJSON:  `{"name":"Bob","email":"bob@example.com","password":"password123"}`,
+			wantStatus: 500,
+			wantUser:   User{},
 		},
 	}
+
 	for name, tc := range testcases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			logger := slog.Default()
+			logger := slog.New(slog.DiscardHandler)
 			db, mock, err := sqlmock.New()
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
 			defer db.Close()
+
+			sqlxDB := sqlx.NewDb(db, "pgx")
 
 			if tc.mockCalled {
 				mock.
@@ -76,7 +106,7 @@ func TestCreateUser(t *testing.T) {
 
 			req := httptest.NewRequest("POST", "/users", bytes.NewBuffer([]byte(tc.inputJSON)))
 			rec := httptest.NewRecorder()
-			handler := createUser(logger, db)
+			handler := createUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
 
 			if rec.Code != tc.wantStatus {
@@ -94,5 +124,4 @@ func TestCreateUser(t *testing.T) {
 			}
 		})
 	}
-
 }

@@ -10,20 +10,27 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jmoiron/sqlx"
 )
 
 func TestListUsers(t *testing.T) {
+	type mockDB struct {
+		mockRows  *sqlmock.Rows
+		mockError error
+	}
+
 	testcases := map[string]struct {
-		mockRows   *sqlmock.Rows
-		mockError  error
+		mockDB
 		wantStatus int
 		wantUsers  []User
 	}{
 		"success": {
-			mockRows: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
-				AddRow(1, "Alice", "alice@example.com", "pw1").
-				AddRow(2, "Bob", "bob@example.com", "pw2"),
-			mockError:  nil,
+			mockDB: mockDB{
+				mockRows: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
+					AddRow(1, "Alice", "alice@example.com", "pw1").
+					AddRow(2, "Bob", "bob@example.com", "pw2"),
+				mockError: nil,
+			},
 			wantStatus: http.StatusOK,
 			wantUsers: []User{
 				{ID: 1, Name: "Alice", Email: "alice@example.com", Password: "pw1"},
@@ -31,21 +38,27 @@ func TestListUsers(t *testing.T) {
 			},
 		},
 		"empty": {
-			mockRows:   sqlmock.NewRows([]string{"id", "name", "email", "password"}),
-			mockError:  nil,
+			mockDB: mockDB{
+				mockRows:  sqlmock.NewRows([]string{"id", "name", "email", "password"}),
+				mockError: nil,
+			},
 			wantStatus: http.StatusOK,
 			wantUsers:  []User{},
 		},
 		"scan_error": {
-			mockRows: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
-				AddRow("bad_id", "Charlie", "charlie@example.com", "pw3"),
-			mockError:  nil,
+			mockDB: mockDB{
+				mockRows: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
+					AddRow("bad_id", "Charlie", "charlie@example.com", "pw3"),
+				mockError: nil,
+			},
 			wantStatus: http.StatusInternalServerError,
 			wantUsers:  nil,
 		},
 		"db_error": {
-			mockRows:   nil,
-			mockError:  errors.New("db error"),
+			mockDB: mockDB{
+				mockRows:  nil,
+				mockError: errors.New("db error"),
+			},
 			wantStatus: http.StatusInternalServerError,
 			wantUsers:  nil,
 		},
@@ -55,17 +68,19 @@ func TestListUsers(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			logger := slog.Default()
+			logger := slog.New(slog.DiscardHandler)
 			db, mock, err := sqlmock.New()
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
 			defer db.Close()
 
+			sqlxDB := sqlx.NewDb(db, "pgx")
+
 			expect := mock.ExpectQuery(regexp.QuoteMeta(`
-            SELECT id, name, email, password
-            FROM users
-        `))
+						SELECT id, name, email, password
+						FROM users
+					`))
 			if tc.mockRows != nil {
 				expect.WillReturnRows(tc.mockRows)
 			}
@@ -73,7 +88,7 @@ func TestListUsers(t *testing.T) {
 
 			req := httptest.NewRequest("GET", "/user", nil)
 			rec := httptest.NewRecorder()
-			handler := listUsers(logger, db)
+			handler := listUsers(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
 
 			if rec.Code != tc.wantStatus {

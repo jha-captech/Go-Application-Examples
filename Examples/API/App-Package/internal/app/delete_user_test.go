@@ -10,48 +10,61 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/jmoiron/sqlx"
 )
 
 func TestDeleteUser(t *testing.T) {
-	testcases := map[string]struct {
+	type mockDB struct {
 		mockCalled    bool
 		mockInputArgs []driver.Value
 		mockResult    driver.Result
 		mockError     error
-		id            string
-		wantStatus    int
+	}
+
+	testcases := map[string]struct {
+		mockDB
+		id         string
+		wantStatus int
 	}{
 		"success": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{1},
-			mockResult:    sqlmock.NewResult(0, 1), // 1 row affected
-			mockError:     nil,
-			id:            "1",
-			wantStatus:    http.StatusNoContent,
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{1},
+				mockResult:    sqlmock.NewResult(0, 1), // 1 row affected
+				mockError:     nil,
+			},
+			id:         "1",
+			wantStatus: http.StatusNoContent,
 		},
 		"invalid_id": {
-			mockCalled:    false,
-			mockInputArgs: nil,
-			mockResult:    nil,
-			mockError:     nil,
-			id:            "abc",
-			wantStatus:    http.StatusBadRequest,
+			mockDB: mockDB{
+				mockCalled:    false,
+				mockInputArgs: nil,
+				mockResult:    nil,
+				mockError:     nil,
+			},
+			id:         "abc",
+			wantStatus: http.StatusBadRequest,
 		},
 		"db_error": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{2},
-			mockResult:    nil,
-			mockError:     errors.New("db error"),
-			id:            "2",
-			wantStatus:    http.StatusInternalServerError,
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{2},
+				mockResult:    nil,
+				mockError:     errors.New("db error"),
+			},
+			id:         "2",
+			wantStatus: http.StatusInternalServerError,
 		},
 		"not_found": {
-			mockCalled:    true,
-			mockInputArgs: []driver.Value{3},
-			mockResult:    sqlmock.NewResult(0, 0), // 0 rows affected
-			mockError:     nil,
-			id:            "3",
-			wantStatus:    http.StatusNotFound,
+			mockDB: mockDB{
+				mockCalled:    true,
+				mockInputArgs: []driver.Value{3},
+				mockResult:    sqlmock.NewResult(0, 0), // 0 rows affected
+				mockError:     nil,
+			},
+			id:         "3",
+			wantStatus: http.StatusNotFound,
 		},
 	}
 
@@ -59,12 +72,14 @@ func TestDeleteUser(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			logger := slog.Default()
+			logger := slog.New(slog.DiscardHandler)
 			db, mock, err := sqlmock.New()
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
 			defer db.Close()
+
+			sqlxDB := sqlx.NewDb(db, "pgx")
 
 			if tc.mockCalled {
 				mock.ExpectExec(regexp.QuoteMeta("DELETE FROM users WHERE id = $1")).
@@ -76,7 +91,7 @@ func TestDeleteUser(t *testing.T) {
 			req := httptest.NewRequest("DELETE", "/user/"+tc.id, nil)
 			req.SetPathValue("id", tc.id)
 			rec := httptest.NewRecorder()
-			handler := deleteUser(logger, db)
+			handler := deleteUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
 
 			if rec.Code != tc.wantStatus {

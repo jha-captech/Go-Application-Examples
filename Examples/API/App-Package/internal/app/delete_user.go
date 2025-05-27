@@ -1,10 +1,12 @@
 package app
 
 import (
-	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // @Summary		Delete User
@@ -17,16 +19,32 @@ import (
 // @Failure		404	{object}	string
 // @Failure		500	{object}	string
 // @Router			/user/{id} [DELETE]
-func deleteUser(logger *slog.Logger, db *sql.DB) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		// Read id from path parameters
 		idStr := r.PathValue("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to parse id from url", slog.String("id", idStr), slog.String("error", err.Error()))
-			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			logger.ErrorContext(
+				ctx,
+				"failed to parse id from url",
+				slog.String("id", idStr),
+				slog.String("error", err.Error()),
+			)
+			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+				Title:  "Invalid ID",
+				Status: http.StatusBadRequest,
+				Detail: "The provided ID is not a valid integer.",
+			})
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
@@ -36,23 +54,52 @@ func deleteUser(logger *slog.Logger, db *sql.DB) http.Handler {
 		result, err := db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", id)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to delete user", slog.String("error", err.Error()))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			logger.ErrorContext(ctx, "failed to get rows affected", slog.String("error", err.Error()))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			logger.ErrorContext(
+				ctx,
+				"failed to get rows affected",
+				slog.String("error", err.Error()),
+			)
+			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
 		if rowsAffected == 0 {
-			http.Error(w, "User Not Found", http.StatusNotFound)
+			encodeErr := encodeResponse(w, http.StatusNotFound, ProblemDetail{
+				Title:  "User Not Found",
+				Status: http.StatusNotFound,
+				Detail: fmt.Sprintf("User with ID %d not found", id),
+			})
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
 		// Respond with no content
 		w.WriteHeader(http.StatusNoContent)
-	})
+	}
 }
