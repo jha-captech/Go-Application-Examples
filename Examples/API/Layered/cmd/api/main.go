@@ -16,7 +16,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"example.com/examples/api/layered/internal/config"
-	"example.com/examples/api/layered/internal/ctxlogger"
+	"example.com/examples/api/layered/internal/ctxhandler"
 	"example.com/examples/api/layered/internal/middleware"
 	"example.com/examples/api/layered/internal/routes"
 	"example.com/examples/api/layered/internal/services"
@@ -43,13 +43,13 @@ func run(ctx context.Context) error {
 	// Create a structured logger, which will print logs in json format to the
 	// writer we specify.
 	logger := slog.New(
-		ctxlogger.WrapSlogHandler(
+		ctxhandler.WrapSlogHandler(
 			slog.NewJSONHandler(
 				os.Stdout, &slog.HandlerOptions{
 					Level: cfg.LogLevel,
 				},
 			),
-			ctxlogger.WithAtterFunc(middleware.GetRaceIDAsAtter),
+			ctxhandler.WithAtterFunc(middleware.GetRaceIDAsAtter),
 		),
 	)
 

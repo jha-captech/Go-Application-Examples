@@ -43,7 +43,7 @@ func TestHandleCreateUser(t *testing.T) {
 				// Create a new response recorder
 				rec := httptest.NewRecorder()
 
-				// Create a new ctxlogger
+				// Create a new ctxhandler
 				logger := slog.Default()
 
 				mockedUserCreator := &moquserCreator{
