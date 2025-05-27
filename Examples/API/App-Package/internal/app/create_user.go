@@ -30,11 +30,20 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"failed to decode request",
 				slog.String("error", err.Error()))
 
-			encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Bad Request",
 				Status: 400,
 				Detail: "Invalid request body.",
 			})
+
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
+
 			return
 		}
 		if len(problems) > 0 {
@@ -43,7 +52,14 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
-			encodeResponse(w, logger, http.StatusBadRequest, NewValidationBadRequest(problems))
+			encodeErr := encodeResponse(w, http.StatusBadRequest, NewValidationBadRequest(problems))
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
@@ -61,7 +77,14 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		err = db.GetContext(ctx, &user.ID, query, user.Name, user.Email, user.Password)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to insert user", slog.String("error", err.Error()))
-			encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
+			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
@@ -72,6 +95,13 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		)
 
 		// Respond with created user
-		encodeResponse(w, logger, http.StatusCreated, user)
+		encodeErr := encodeResponse(w, http.StatusCreated, user)
+		if encodeErr != nil {
+			logger.ErrorContext(
+				ctx,
+				"failed to encode response",
+				slog.String("error", encodeErr.Error()),
+			)
+		}
 	}
 }

@@ -33,11 +33,18 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			encodeResponse(w, logger, http.StatusBadRequest, ProblemDetail{
+			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
 			})
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
@@ -47,7 +54,14 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		result, err := db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", id)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to delete user", slog.String("error", err.Error()))
-			encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
+			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
@@ -58,16 +72,30 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"failed to get rows affected",
 				slog.String("error", err.Error()),
 			)
-			encodeResponse(w, logger, http.StatusInternalServerError, NewInternalServerError())
+			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
 		if rowsAffected == 0 {
-			encodeResponse(w, logger, http.StatusNotFound, ProblemDetail{
+			encodeErr := encodeResponse(w, http.StatusNotFound, ProblemDetail{
 				Title:  "User Not Found",
 				Status: http.StatusNotFound,
 				Detail: fmt.Sprintf("User with ID %d not found", id),
 			})
+			if encodeErr != nil {
+				logger.ErrorContext(
+					ctx,
+					"failed to encode response",
+					slog.String("error", encodeErr.Error()),
+				)
+			}
 			return
 		}
 
