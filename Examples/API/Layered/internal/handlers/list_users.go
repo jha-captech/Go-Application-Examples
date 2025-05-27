@@ -45,7 +45,7 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 				slog.String("error", err.Error()),
 			)
 
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
 

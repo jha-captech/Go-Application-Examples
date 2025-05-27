@@ -45,7 +45,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			encodeResponse(w, logger, http.StatusBadRequest, "Invalid ID")
 			return
 		}
 
@@ -57,7 +57,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				"failed to decode request",
 				slog.String("error", err.Error()))
 
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, "Internal Server Error")
 		}
 		if len(problems) > 0 {
 			logger.ErrorContext(
@@ -84,7 +84,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
 

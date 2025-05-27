@@ -40,7 +40,7 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 			)
 
 			// replace with json decoder helper with error from decoder
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, "Internal Server Error")
 		}
 		if len(problems) > 0 {
 			logger.ErrorContext(
@@ -65,7 +65,7 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
 

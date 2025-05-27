@@ -40,7 +40,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			encodeResponse(w, logger, http.StatusBadRequest, "Invalid ID")
 			return
 		}
 
@@ -53,7 +53,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
 		// Encode the response model as JSON

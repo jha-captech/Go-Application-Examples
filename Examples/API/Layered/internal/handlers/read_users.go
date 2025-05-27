@@ -43,7 +43,7 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 				slog.String("error", err.Error()),
 			)
 
-			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			encodeResponse(w, logger, http.StatusBadRequest, "Invalid ID")
 			return
 		}
 
@@ -56,7 +56,7 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 				slog.String("error", err.Error()),
 			)
 
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			encodeResponse(w, logger, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
 
