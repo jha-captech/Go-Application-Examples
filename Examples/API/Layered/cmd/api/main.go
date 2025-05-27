@@ -49,7 +49,7 @@ func run(ctx context.Context) error {
 					Level: cfg.LogLevel,
 				},
 			),
-			ctxhandler.WithAtterFunc(middleware.GetRaceIDAsAtter),
+			ctxhandler.WithAtterFunc(middleware.GetTraceIDAsAtter),
 		),
 	)
 
