@@ -55,6 +55,7 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
 			return
 		}
 
