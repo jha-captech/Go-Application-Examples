@@ -39,7 +39,7 @@ func run(ctx context.Context) error {
 		ctx,
 		telemetry.Config{
 			JaegerEndpoint: "jaeger:4317",
-			ServiceName:    "api-package-user-service",
+			ServiceName:    "api-layered-user-service",
 		},
 	)
 	if err != nil {
