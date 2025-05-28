@@ -20,6 +20,7 @@ import (
 	"example.com/examples/api/layered/internal/middleware"
 	"example.com/examples/api/layered/internal/routes"
 	"example.com/examples/api/layered/internal/services"
+	"example.com/examples/api/layered/internal/telemetry"
 )
 
 func main() {
@@ -33,6 +34,21 @@ func main() {
 func run(ctx context.Context) error {
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	otelShutdownFunc, err := telemetry.SetupOTelSDK(
+		ctx,
+		telemetry.Config{
+			JaegerEndpoint: "jaeger:4317",
+			ServiceName:    "api-package-user-service",
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to setup OpenTelemetry SDK: %w", err)
+	}
+
+	defer func() {
+		err = errors.Join(err, otelShutdownFunc(ctx))
+	}()
 
 	// Load and validate environment config
 	cfg, err := config.New()
@@ -82,14 +98,14 @@ func run(ctx context.Context) error {
 	usersService := services.NewUsersService(logger, db)
 
 	// Create a serve mux to act as our route multiplexer
-	mux := http.NewServeMux()
+	mux := telemetry.InstrumentServeMux(http.NewServeMux())
 
 	// Add our routes to the mux
 	routes.AddRoutes(mux, logger, usersService)
 
 	// Wrap the mux with middleware
 	wrappedMux := middleware.WrapHandler(
-		mux,
+		mux.InstrumentRootHandler("my-service"),
 		middleware.TraceID(),
 		middleware.Logger(logger),
 		middleware.Recover(logger),
@@ -109,6 +125,13 @@ func run(ctx context.Context) error {
 				func() error {
 					if err := srv.Shutdown(ctx); err != nil {
 						return fmt.Errorf("failed to shutdown server: %w", err)
+					}
+
+					if err := otelShutdownFunc(ctx); err != nil {
+						return fmt.Errorf(
+							"[in main.run] failed to shutdown OpenTelemetry SDK: %w",
+							err,
+						)
 					}
 
 					return nil

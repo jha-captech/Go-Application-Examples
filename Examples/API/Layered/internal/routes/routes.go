@@ -2,10 +2,10 @@ package routes
 
 import (
 	"log/slog"
-	"net/http"
 
 	"example.com/examples/api/layered/internal/handlers"
 	"example.com/examples/api/layered/internal/services"
+	"example.com/examples/api/layered/internal/telemetry"
 )
 
 // @title						Blog Service API
@@ -21,7 +21,7 @@ import (
 // @BasePath					/api
 // @externalDocs.description	OpenAPI
 // @externalDocs.url			https://swagger.io/resources/open-api/
-func AddRoutes(mux *http.ServeMux, logger *slog.Logger, usersService *services.UsersService) {
+func AddRoutes(mux *telemetry.InstrumentedServeMux, logger *slog.Logger, usersService *services.UsersService) {
 	// User endpoints
 	mux.Handle("GET /api/user/{id}", handlers.HandleReadUser(logger, usersService))
 	mux.Handle("GET /api/user", handlers.HandleListUsers(logger, usersService))

@@ -19,7 +19,7 @@ func TestHandleCreateUser(t *testing.T) {
 		input      models.User
 	}{
 		"happy path": {
-			wantStatus: 200,
+			wantStatus: 201,
 			wantBody: models.User{
 				ID:       1,
 				Name:     "john",

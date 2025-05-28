@@ -32,6 +32,8 @@ type listUsersResponse struct {
 // @Router			/user  [GET]
 func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := tracer.Start(r.Context(), "listUsersHandler")
+		defer span.End()
 		ctx := r.Context()
 
 		name := r.URL.Query().Get("name")

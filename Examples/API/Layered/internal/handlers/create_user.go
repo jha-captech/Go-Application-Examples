@@ -7,7 +7,12 @@ import (
 	"net/http"
 
 	"example.com/examples/api/layered/internal/models"
+	"go.opentelemetry.io/otel"
 )
+
+const name = "example.com/examples/api/layered/internal/handlers"
+
+var tracer = otel.Tracer(name)
 
 // userCreator represents a type capable of reading a user from storage and
 // returning it or an error.
@@ -28,6 +33,8 @@ type userCreator interface {
 // @Router			/user  [POST]
 func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := tracer.Start(r.Context(), "createUserHandler")
+		defer span.End()
 		ctx := r.Context()
 
 		// Request validation

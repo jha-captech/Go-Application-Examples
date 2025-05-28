@@ -21,6 +21,8 @@ type healthResponse struct {
 //	@Router			/health	[GET]
 func HandleHealthCheck(logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := tracer.Start(r.Context(), "healthHandler")
+		defer span.End()
 		logger.InfoContext(r.Context(), "health check called")
 
 		encodeErr := encodeResponse(w, http.StatusOK, healthResponse{Status: "ok"})

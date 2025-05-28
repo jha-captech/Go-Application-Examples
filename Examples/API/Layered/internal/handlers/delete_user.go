@@ -25,6 +25,8 @@ type userDeleter interface {
 // @Router			/user/{id}  [DELETE]
 func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := tracer.Start(r.Context(), "deleteUserHandler")
+		defer span.End()
 		ctx := r.Context()
 
 		// Read id from path parameters

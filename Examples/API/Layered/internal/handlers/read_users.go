@@ -28,6 +28,8 @@ type userReader interface {
 // @Router			/user/{id}  [GET]
 func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := tracer.Start(r.Context(), "readUserHandler")
+		defer span.End()
 		ctx := r.Context()
 
 		// Read id from path parameters

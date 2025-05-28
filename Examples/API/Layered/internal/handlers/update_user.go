@@ -30,6 +30,8 @@ type userUpdater interface {
 // @Router			/user/{id}  [PUT]
 func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		_, span := tracer.Start(r.Context(), "updateUserHandler")
+		defer span.End()
 		ctx := r.Context()
 
 		// Read id from path parameters
