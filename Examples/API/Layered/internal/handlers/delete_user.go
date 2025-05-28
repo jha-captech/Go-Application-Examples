@@ -54,6 +54,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
 			return
 		}
 
@@ -74,6 +75,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
 			return
 		}
 		// Encode the response model as JSON

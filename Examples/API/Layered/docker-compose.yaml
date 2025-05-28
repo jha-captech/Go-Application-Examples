@@ -36,6 +36,23 @@ services:
       FLYWAY_CONNECT_RETRIES: 10
     command: migrate
 
+  jaeger:
+    image: jaegertracing/jaeger:2.6.0
+    container_name: jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI -> http://localhost:16686
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "5778:5778"    # Sampling
+      - "9411:9411"    # Zipkin compatibility
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:16686" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
   api:
     build: .
     ports:
@@ -45,6 +62,8 @@ services:
         condition: service_healthy
       flyway:
         condition: service_completed_successfully
+      jaeger:
+        condition: service_healthy
     env_file:
       - .env
 

@@ -57,6 +57,7 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
 			return
 		}
 
@@ -77,6 +78,7 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
 			return
 		}
 

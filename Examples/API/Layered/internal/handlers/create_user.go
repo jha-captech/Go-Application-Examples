@@ -58,6 +58,8 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
+			return
 		}
 		if len(problems) > 0 {
 			logger.ErrorContext(
@@ -74,6 +76,8 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
+			return
 		}
 
 		modelRequest := models.User{

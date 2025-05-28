@@ -59,6 +59,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
 			return
 		}
 
@@ -78,6 +79,8 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
+			return
 		}
 		if len(problems) > 0 {
 			logger.ErrorContext(
@@ -112,6 +115,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 					slog.String("error", encodeErr.Error()),
 				)
 			}
+
 			return
 		}
 
