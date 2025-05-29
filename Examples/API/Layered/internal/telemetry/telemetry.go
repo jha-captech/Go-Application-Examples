@@ -16,8 +16,8 @@ import (
 
 // Config holds configuration for telemetry setup.
 type Config struct {
-	JaegerEndpoint string
-	ServiceName    string
+	Endpoint    string
+	ServiceName string
 }
 
 // SetupOTelSDK bootstraps the OpenTelemetry pipeline.
@@ -76,7 +76,7 @@ func newPropagator() propagation.TextMapPropagator {
 func newTracerProvider(ctx context.Context, cfg Config) (*trace.TracerProvider, error) {
 	traceExporter, err := otlptracegrpc.New(
 		ctx,
-		otlptracegrpc.WithEndpoint(cfg.JaegerEndpoint),
+		otlptracegrpc.WithEndpoint(cfg.Endpoint),
 		otlptracegrpc.WithInsecure(),
 	)
 	if err != nil {

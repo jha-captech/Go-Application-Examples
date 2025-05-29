@@ -52,7 +52,6 @@ func (m *InstrumentedServeMux) Handle(pattern string, handler http.Handler) {
 }
 
 func (m *InstrumentedServeMux) InstrumentRootHandler(
-	defaultName string,
 	opts ...otelhttp.Option,
 ) http.Handler {
 	return otelhttp.NewHandler(
@@ -66,6 +65,6 @@ func (m *InstrumentedServeMux) InstrumentRootHandler(
 
 				m.ServeMux.ServeHTTP(w, r.WithContext(ctx))
 			},
-		), defaultName, opts...,
+		), "my-service", opts...,
 	)
 }

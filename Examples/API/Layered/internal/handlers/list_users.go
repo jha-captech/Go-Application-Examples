@@ -31,10 +31,12 @@ type listUsersResponse struct {
 // @Failure		500		{object}	string
 // @Router			/user  [GET]
 func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerFunc {
+	const name = "handlers.HandleListUsers"
+	logger = logger.With(slog.String("func", name))
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, span := tracer.Start(r.Context(), "listUsersHandler")
+		ctx, span := tracer.Start(r.Context(), name)
 		defer span.End()
-		ctx := r.Context()
 
 		name := r.URL.Query().Get("name")
 
@@ -47,14 +49,7 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 				slog.String("error", err.Error()),
 			)
 
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
@@ -66,22 +61,14 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 
 		for _, user := range users {
 			newUser := UserResponse{
-				ID:       user.ID,
-				Name:     user.Name,
-				Email:    user.Email,
-				Password: user.Password,
+				ID:    user.ID,
+				Name:  user.Name,
+				Email: user.Email,
 			}
 			response.Users = append(response.Users, newUser)
 		}
 
 		// Encode the response model as JSON
-		encodeErr := encodeResponse(w, http.StatusOK, response)
-		if encodeErr != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", encodeErr.Error()),
-			)
-		}
+		_ = encodeResponse(w, http.StatusOK, response)
 	}
 }

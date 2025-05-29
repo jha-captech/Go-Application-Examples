@@ -7,7 +7,12 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
+	"go.opentelemetry.io/otel"
 )
+
+const name = "example.com/examples/api/layered/internal/handlers"
+
+var tracer = otel.Tracer(name)
 
 // ProblemDetail represents the structure for problem details as per RFC 7807.
 type ProblemDetail struct {

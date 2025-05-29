@@ -7,12 +7,7 @@ import (
 	"net/http"
 
 	"example.com/examples/api/layered/internal/models"
-	"go.opentelemetry.io/otel"
 )
-
-const name = "example.com/examples/api/layered/internal/handlers"
-
-var tracer = otel.Tracer(name)
 
 // userCreator represents a type capable of reading a user from storage and
 // returning it or an error.
@@ -32,10 +27,12 @@ type userCreator interface {
 // @Failure		500		{object}	string
 // @Router			/user  [POST]
 func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.HandlerFunc {
+	const name = "handlers.HandleCreateUser"
+	logger = logger.With(slog.String("func", name))
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, span := tracer.Start(r.Context(), "createUserHandler")
+		ctx, span := tracer.Start(r.Context(), name)
 		defer span.End()
-		ctx := r.Context()
 
 		// Request validation
 		request, problems, err := decodeValid[UserRequest](r)
@@ -45,19 +42,14 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				"failed to decode request",
 				slog.String("error", err.Error()),
 			)
+			// otel set error info
+			span.RecordError(err)
 
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, ProblemDetail{
+			_ = encodeResponse(w, http.StatusInternalServerError, ProblemDetail{
 				Title:  "Bad Request",
 				Status: 400,
 				Detail: "Invalid request body.",
 			})
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
 
 			return
 		}
@@ -68,14 +60,7 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
 
-			encodeErr := encodeResponse(w, http.StatusBadRequest, NewValidationBadRequest(problems))
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusBadRequest, NewValidationBadRequest(problems))
 
 			return
 		}
@@ -95,30 +80,16 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+
 			return
 		}
 
 		// Convert our models.User domain model into a response model.
-		encodeErr := encodeResponse(w, http.StatusCreated, UserResponse{
-			ID:       user.ID,
-			Name:     user.Name,
-			Email:    user.Email,
-			Password: user.Password,
+		_ = encodeResponse(w, http.StatusCreated, UserResponse{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
 		})
-		if encodeErr != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", encodeErr.Error()),
-			)
-		}
 	}
 }

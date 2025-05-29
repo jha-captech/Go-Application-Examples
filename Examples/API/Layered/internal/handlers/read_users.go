@@ -27,10 +27,12 @@ type userReader interface {
 // @Failure		500	{object}	string
 // @Router			/user/{id}  [GET]
 func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc {
+	const name = "handlers.HandleReadUser"
+	logger = logger.With(slog.String("func", name))
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, span := tracer.Start(r.Context(), "readUserHandler")
+		ctx, span := tracer.Start(r.Context(), name)
 		defer span.End()
-		ctx := r.Context()
 
 		// Read id from path parameters
 		idStr := r.PathValue("id")
@@ -45,18 +47,11 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 				slog.String("error", err.Error()),
 			)
 
-			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
 			})
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
 
 			return
 		}
@@ -70,31 +65,16 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 				slog.String("error", err.Error()),
 			)
 
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
 
 		// Encode the response model as JSON
-		encodeErr := encodeResponse(w, http.StatusOK, UserResponse{
-			ID:       user.ID,
-			Name:     user.Name,
-			Email:    user.Email,
-			Password: user.Password,
+		_ = encodeResponse(w, http.StatusOK, UserResponse{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
 		})
-		if encodeErr != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", encodeErr.Error()),
-			)
-		}
 	}
 }

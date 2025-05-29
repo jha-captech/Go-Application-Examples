@@ -20,20 +20,14 @@ type healthResponse struct {
 //	@Success		200		{object}	healthResponse
 //	@Router			/health	[GET]
 func HandleHealthCheck(logger *slog.Logger) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		_, span := tracer.Start(r.Context(), "healthHandler")
-		defer span.End()
-		logger.InfoContext(r.Context(), "health check called")
+	const name = "handlers.HandleHealthCheck"
+	logger = logger.With(slog.String("func", name))
 
-		encodeErr := encodeResponse(w, http.StatusOK, healthResponse{Status: "ok"})
-		if encodeErr != nil {
-			logger.ErrorContext(
-				r.Context(),
-				"failed to encode response",
-				slog.String("error", encodeErr.Error()),
-			)
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := tracer.Start(r.Context(), name)
+		defer span.End()
+		logger.InfoContext(ctx, "health check called")
+
+		_ = encodeResponse(w, http.StatusOK, healthResponse{Status: "ok"})
 	}
 }

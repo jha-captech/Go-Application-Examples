@@ -32,14 +32,12 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	otelShutdownFunc, err := telemetry.SetupOTelSDK(
 		ctx,
 		telemetry.Config{
-			JaegerEndpoint: "jaeger:4317",
-			ServiceName:    "api-layered-user-service",
+			Endpoint:    "jaeger:4317",
+			ServiceName: "api-layered-user-service",
 		},
 	)
 	if err != nil {
@@ -104,8 +102,10 @@ func run(ctx context.Context) error {
 	routes.AddRoutes(mux, logger, usersService)
 
 	// Wrap the mux with middleware
+	// add trace id to logger errors
+	// move instrumentation to after for full wrappage
 	wrappedMux := middleware.WrapHandler(
-		mux.InstrumentRootHandler("my-service"),
+		mux.InstrumentRootHandler(),
 		middleware.TraceID(),
 		middleware.Logger(logger),
 		middleware.Recover(logger),
@@ -116,6 +116,9 @@ func run(ctx context.Context) error {
 		Addr:    ":8080",
 		Handler: wrappedMux,
 	}
+
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	eg, ctx := errgroup.WithContext(ctx)
 

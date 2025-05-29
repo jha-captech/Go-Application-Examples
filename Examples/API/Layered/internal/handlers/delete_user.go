@@ -24,10 +24,12 @@ type userDeleter interface {
 // @Failure		500	{object}	string
 // @Router			/user/{id}  [DELETE]
 func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.HandlerFunc {
+	const name = "handlers.HandleDeleteUser"
+	logger = logger.With(slog.String("func", name))
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, span := tracer.Start(r.Context(), "deleteUserHandler")
+		ctx, span := tracer.Start(r.Context(), name)
 		defer span.End()
-		ctx := r.Context()
 
 		// Read id from path parameters
 		idStr := r.PathValue("id")
@@ -42,18 +44,11 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
 			})
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
 
 			return
 		}
@@ -67,14 +62,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}

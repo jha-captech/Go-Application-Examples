@@ -29,10 +29,12 @@ type userUpdater interface {
 // @Failure		500		{object}	string
 // @Router			/user/{id}  [PUT]
 func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.HandlerFunc {
+	const name = "handlers.HandleUpdateUser"
+	logger = logger.With(slog.String("func", name))
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, span := tracer.Start(r.Context(), "updateUserHandler")
+		ctx, span := tracer.Start(r.Context(), name)
 		defer span.End()
-		ctx := r.Context()
 
 		// Read id from path parameters
 		idStr := r.PathValue("id")
@@ -47,18 +49,11 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
 			})
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
 
 			return
 		}
@@ -71,14 +66,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				"failed to decode request",
 				slog.String("error", err.Error()))
 
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
@@ -107,31 +95,16 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				slog.String("error", err.Error()),
 			)
 
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
 
 		// Encode the response model as JSON
-		encodeErr := encodeResponse(w, http.StatusOK, UserResponse{
-			ID:       user.ID,
-			Name:     user.Name,
-			Email:    user.Email,
-			Password: user.Password,
+		_ = encodeResponse(w, http.StatusOK, UserResponse{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
 		})
-		if encodeErr != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", encodeErr.Error()),
-			)
-		}
 	}
 }
