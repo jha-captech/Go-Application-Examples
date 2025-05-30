@@ -22,6 +22,12 @@ import (
 func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		
+		const funcName = "app.deleteUser"
+		logger = logger.With(
+			slog.String("func", funcName),
+			slog.Any("traceId", ctx.Value(traceIDKey{})),
+		)
 
 		// Read id from path parameters
 		idStr := r.PathValue("id")
@@ -33,18 +39,11 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{ // ignore the error here because it should never happen with a defined struct
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
 			})
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
 			return
 		}
 
@@ -54,14 +53,7 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		result, err := db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", id)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to delete user", slog.String("error", err.Error()))
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 			return
 		}
 
@@ -72,30 +64,16 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"failed to get rows affected",
 				slog.String("error", err.Error()),
 			)
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 			return
 		}
 
 		if rowsAffected == 0 {
-			encodeErr := encodeResponse(w, http.StatusNotFound, ProblemDetail{
+			_ = encodeResponse(w, http.StatusNotFound, ProblemDetail{
 				Title:  "User Not Found",
 				Status: http.StatusNotFound,
 				Detail: fmt.Sprintf("User with ID %d not found", id),
 			})
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
 			return
 		}
 

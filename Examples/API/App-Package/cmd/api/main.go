@@ -26,9 +26,6 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
 	// Load and validate environment config
 	cfg, err := app.NewConfig()
 	if err != nil {
@@ -59,13 +56,23 @@ func run(ctx context.Context) error {
 		}
 	}()
 
+	// create handler and wrap in middleware
 	handler := app.NewHandler(logger, db)
+	wrappedHandler := app.WrapHandler(
+		handler,
+		app.TraceIDMiddleware(),
+		app.LoggingMiddleware(logger),
+		app.RecoveryMiddleware(logger),
+	)
 
 	// Create a new http server with our mux as the handler
 	httpServer := &http.Server{
 		Addr:    ":8080",
-		Handler: handler,
+		Handler: wrappedHandler,
 	}
+
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	// Create a new errgroup to handle graceful shutdown
 	eg, ctx := errgroup.WithContext(ctx)
