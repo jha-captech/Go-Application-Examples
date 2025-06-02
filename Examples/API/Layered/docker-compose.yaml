@@ -53,6 +53,17 @@ services:
       retries: 10
       start_period: 5s
 
+  cache:
+    image: redis:7.4-alpine
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${CACHE_PASSWORD}
+    volumes:
+      - cache:/data
+
   api:
     build: .
     ports:
@@ -69,3 +80,5 @@ services:
 
 volumes:
   postgres-db:
+  cache:
+    driver: local

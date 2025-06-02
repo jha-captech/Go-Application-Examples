@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	"example.com/examples/api/layered/internal/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleListUser(t *testing.T) {
@@ -51,9 +51,7 @@ func TestHandleListUser(t *testing.T) {
 
 				handler.ServeHTTP(rec, req)
 				// Check the status code
-				if rec.Code != tc.wantStatus {
-					t.Errorf("want status %d, got %d", tc.wantStatus, rec.Code)
-				}
+				assert.Equal(t, tc.wantStatus, rec.Code)
 
 				// Check the body
 				type usersResponse struct {
@@ -65,9 +63,7 @@ func TestHandleListUser(t *testing.T) {
 				_ = json.Unmarshal(rec.Body.Bytes(), &resp)
 				respBody := resp.Users
 
-				if !reflect.DeepEqual(respBody, tc.wantBody) {
-					t.Errorf("want body %q, got %q", tc.wantBody, rec.Body.String())
-				}
+				assert.ObjectsAreEqualValues(tc.wantBody, respBody)
 			},
 		)
 	}

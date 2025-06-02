@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"example.com/examples/api/layered/internal/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleReadUser(t *testing.T) {
@@ -50,15 +50,18 @@ func TestHandleReadUser(t *testing.T) {
 
 				handler.ServeHTTP(rec, req)
 				// Check the status code
-				if rec.Code != tc.wantStatus {
-					t.Errorf("want status %d, got %d", tc.wantStatus, rec.Code)
-				}
+				assert.Equal(t, tc.wantStatus, rec.Code)
 
 				// Check the body
-				json, _ := json.Marshal(tc.wantBody)
-				if strings.Trim(rec.Body.String(), "\n") != string(json) {
-					t.Errorf("want body %q, got %q", string(json), rec.Body.String())
+				type usersResponse struct {
+					Users []models.User `json:"Users"`
 				}
+
+				var resp usersResponse
+				_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+				respBody := resp.Users
+
+				assert.ObjectsAreEqualValues(tc.wantBody, respBody)
 			},
 		)
 	}

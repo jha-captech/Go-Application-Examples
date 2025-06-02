@@ -1,15 +1,18 @@
 package services
 
 import (
-	"context"
 	"database/sql/driver"
 	"log/slog"
 	"regexp"
+	"strconv"
 	"testing"
 
 	"example.com/examples/api/layered/internal/models"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-redis/redismock/v9"
 	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUsersService_ReadUser(t *testing.T) {
@@ -63,15 +66,14 @@ func TestUsersService_ReadUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
+			rdb, rmock := redismock.NewClientMock()
+			rmock.ExpectGet(strconv.FormatUint(tc.input, 10)).SetErr(redis.Nil)
+			rmock.Regexp().ExpectSet(strconv.Itoa(int(tc.expectedOutput.ID)), `.*`, 0).SetVal("OK")
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"), rdb, 0)
 
-			output, err := userService.ReadUser(context.TODO(), tc.input)
-			if err != tc.expectedError {
-				t.Errorf("expected no error, got %v", err)
-			}
-			if output != tc.expectedOutput {
-				t.Errorf("expected %v, got %v", tc.expectedOutput, output)
-			}
+			output, err := userService.ReadUser(t.Context(), tc.input)
+			assert.ErrorIs(t, err, tc.expectedError)
+			assert.Equal(t, tc.expectedOutput, output)
 
 			if tc.mockCalled {
 				if err = mock.ExpectationsWereMet(); err != nil {
@@ -81,6 +83,7 @@ func TestUsersService_ReadUser(t *testing.T) {
 		})
 	}
 }
+
 func TestUsersService_ListUsers(t *testing.T) {
 	testcases := map[string]struct {
 		mockCalled     bool
@@ -169,17 +172,14 @@ func TestUsersService_ListUsers(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
+			rdb, _ := redismock.NewClientMock()
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"), rdb, 0)
 
-			outputs, err := userService.ListUsers(context.TODO(), tc.input)
-			if err != tc.expectedError {
-				t.Errorf("expected no error, got %v", err)
-			}
+			outputs, err := userService.ListUsers(t.Context(), tc.input)
+			assert.ErrorIs(t, err, tc.expectedError)
 
 			for i, output := range outputs {
-				if output != tc.expectedOutput[i] {
-					t.Errorf("expected %v, got %v", tc.expectedOutput[i], output)
-				}
+				assert.Equal(t, tc.expectedOutput[i], output)
 			}
 
 			if tc.mockCalled {
@@ -226,12 +226,12 @@ func TestBlogsService_DeleteUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
+			rdb, rmock := redismock.NewClientMock()
+			rmock.ExpectDel(strconv.FormatUint(tc.input, 10)).SetVal(1)
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"), rdb, 0)
 
-			err = userService.DeleteUser(context.TODO(), tc.input)
-			if err != tc.expectedError {
-				t.Errorf("expected no error, got %v", err)
-			}
+			err = userService.DeleteUser(t.Context(), tc.input)
+			assert.ErrorIs(t, err, tc.expectedError)
 
 			if tc.mockCalled {
 				if err = mock.ExpectationsWereMet(); err != nil {
@@ -292,15 +292,13 @@ func TestUsersService_CreateUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
+			rdb, rmock := redismock.NewClientMock()
+			rmock.Regexp().ExpectSet(strconv.Itoa(int(tc.expectedOutput.ID)), `.*`, 0).SetVal("OK")
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"), rdb, 0)
 
-			output, err := userService.CreateUser(context.TODO(), tc.input)
-			if err != tc.expectedError {
-				t.Errorf("expected no error, got %v", err)
-			}
-			if output != tc.expectedOutput {
-				t.Errorf("expected %v, got %v", tc.expectedOutput, output)
-			}
+			output, err := userService.CreateUser(t.Context(), tc.input)
+			assert.ErrorIs(t, err, tc.expectedError)
+			assert.Equal(t, tc.expectedOutput, output)
 
 			if tc.mockCalled {
 				if err = mock.ExpectationsWereMet(); err != nil {
@@ -324,8 +322,8 @@ func TestUsersService_UpdateUser(t *testing.T) {
 		"happy path": {
 			mockCalled:    true,
 			mockInputArgs: []driver.Value{"john", "john@me.com", "password123!", 1},
-			mockOutput: sqlmock.NewRows([]string{"id"}).
-				AddRow(1),
+			mockOutput: sqlmock.NewRows([]string{"id", "name", "email", "password"}).
+				AddRow(1, "john", "john@me.com", "password123!"),
 			mockError: nil,
 			input: models.User{
 				Name:     "john",
@@ -361,17 +359,30 @@ func TestUsersService_UpdateUser(t *testing.T) {
 					WithArgs(tc.mockInputArgs...).
 					WillReturnResult(sqlmock.NewResult(1, 1)).
 					WillReturnError(tc.mockError)
+
+				mock.
+					ExpectQuery(regexp.QuoteMeta(`
+                        SELECT id,
+                               name,
+                               email,
+                               password
+                        FROM users
+                        WHERE id = $1::int
+                    `)).
+					WithArgs(tc.expectedOutput.ID).
+					WillReturnRows(tc.mockOutput).
+					WillReturnError(tc.mockError)
 			}
 
-			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"))
+			rdb, rmock := redismock.NewClientMock()
+			rmock.ExpectGet(strconv.FormatUint(uint64(tc.expectedOutput.ID), 10)).SetErr(redis.Nil)
+			rmock.Regexp().ExpectSet(strconv.Itoa(int(tc.expectedOutput.ID)), `.*`, 0).SetVal("OK")
+			rmock.Regexp().ExpectSet(strconv.Itoa(int(tc.expectedOutput.ID)), `.*`, 0).SetVal("OK")
+			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"), rdb, 0)
 
-			output, err := userService.UpdateUser(context.TODO(), 1, tc.input)
-			if err != tc.expectedError {
-				t.Errorf("expected no error, got %v", err)
-			}
-			if output != tc.expectedOutput {
-				t.Errorf("expected %v, got %v", tc.expectedOutput, output)
-			}
+			output, err := userService.UpdateUser(t.Context(), 1, tc.input)
+			assert.ErrorIs(t, err, tc.expectedError)
+			assert.Equal(t, tc.expectedOutput, output)
 
 			if tc.mockCalled {
 				if err = mock.ExpectationsWereMet(); err != nil {

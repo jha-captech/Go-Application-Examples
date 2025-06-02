@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/errgroup"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -92,8 +93,14 @@ func run(ctx context.Context) error {
 
 	logger.InfoContext(ctx, "Connected successfully to the database")
 
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", cfg.CacheHost, cfg.CachePort),
+		Password: cfg.CachePassword,
+		DB:       cfg.CacheDB,
+	})
+
 	// Create a new users service
-	usersService := services.NewUsersService(logger, db)
+	usersService := services.NewUsersService(logger, db, rdb, 0)
 
 	// Create a serve mux to act as our route multiplexer
 	mux := telemetry.InstrumentServeMux(http.NewServeMux())
