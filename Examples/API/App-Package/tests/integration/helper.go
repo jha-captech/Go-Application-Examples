@@ -11,7 +11,7 @@ import (
 )
 
 // NewTestDB returns an in-memory SQLite DB with a users table and some test data.
-func NewTestDB() (*sqlx.DB, error) {
+func newTestDB() (*sqlx.DB, error) {
 	db, err := sqlx.Open("sqlite3", ":memory:")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open in-memory db: %v", err)
@@ -39,11 +39,11 @@ func NewTestDB() (*sqlx.DB, error) {
 	return db, nil
 }
 
-func NewTestServer() (*httptest.Server, error) {
+func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 	// set up in-memory database
-	db, err := NewTestDB()
+	db, err := newTestDB()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create test database: %v", err)
+		return nil, nil, fmt.Errorf("failed to create test database: %v", err)
 	}
 
 	logger := slog.Default()
@@ -59,5 +59,5 @@ func NewTestServer() (*httptest.Server, error) {
 
 	// Start a test server with your wrapped handler
 	server := httptest.NewServer(wrappedHandler)
-	return server, nil
+	return server, db, nil
 }
