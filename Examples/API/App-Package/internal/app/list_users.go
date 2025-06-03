@@ -17,10 +17,17 @@ import (
 func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		
+		const funcName = "app.listUsers"
+		logger = logger.With(
+			slog.String("func", funcName),
+			getTraceIDAsAtter(ctx),
+		)
 
 		logger.InfoContext(ctx, "Listing all users")
 
-		var users []User
+		// query db to get all users
+		var users []user
 		err := db.SelectContext(
 			ctx,
 			&users,
@@ -32,24 +39,10 @@ func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query users", slog.String("error", err.Error()))
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, newInternalServerError()) // ignore the error here because it should never happen with a defined struct
 			return
 		}
 
-		encodeErr := encodeResponse(w, http.StatusOK, users)
-		if encodeErr != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", encodeErr.Error()),
-			)
-		}
+		_ = encodeResponse(w, http.StatusOK, users)
 	}
 }

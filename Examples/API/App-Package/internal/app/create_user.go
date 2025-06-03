@@ -21,28 +21,26 @@ import (
 func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		
+		const funcName = "app.createUser"
+		logger = logger.With(
+			slog.String("func", funcName),
+			getTraceIDAsAtter(ctx),
+		)
 
-		// Request validation
-		user, problems, err := decodeValid[User](r)
+		// request validation
+		user, problems, err := decodeValid[user](r)
 		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
 				ctx,
 				"failed to decode request",
 				slog.String("error", err.Error()))
 
-			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{ // ignore the error here because it should never happen with a defined struct
 				Title:  "Bad Request",
 				Status: 400,
 				Detail: "Invalid request body.",
 			})
-
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
 
 			return
 		}
@@ -52,14 +50,7 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
-			encodeErr := encodeResponse(w, http.StatusBadRequest, NewValidationBadRequest(problems))
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusBadRequest, newValidationBadRequest(problems))
 			return
 		}
 
@@ -68,7 +59,7 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			slog.String("email", user.Email),
 		)
 
-		// Insert user into db
+		// insert user into db
 		query := `
 			INSERT INTO users (name, email, password)
 			VALUES ($1, $2, $3)
@@ -77,14 +68,7 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		err = db.GetContext(ctx, &user.ID, query, user.Name, user.Email, user.Password)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to insert user", slog.String("error", err.Error()))
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, newInternalServerError())
 			return
 		}
 
@@ -94,14 +78,7 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			slog.String("email", user.Email),
 		)
 
-		// Respond with created user
-		encodeErr := encodeResponse(w, http.StatusCreated, user)
-		if encodeErr != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", encodeErr.Error()),
-			)
-		}
+		// respond with created user
+		_ = encodeResponse(w, http.StatusCreated, user)
 	}
 }

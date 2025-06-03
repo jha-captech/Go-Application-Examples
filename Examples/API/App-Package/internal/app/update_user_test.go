@@ -29,7 +29,7 @@ func TestUpdateUser(t *testing.T) {
 		id         string
 		body       any
 		wantStatus int
-		wantUser   User
+		wantUser   user
 	}{
 		"success": {
 			mockDB: mockDB{
@@ -40,16 +40,16 @@ func TestUpdateUser(t *testing.T) {
 				mockError: nil,
 			},
 			id:         "1",
-			body:       User{Name: "Alice", Email: "alice@new.com", Password: "password123"},
+			body:       user{Name: "Alice", Email: "alice@new.com", Password: "password123"},
 			wantStatus: http.StatusOK,
-			wantUser:   User{ID: 1, Name: "Alice", Email: "alice@new.com", Password: "password123"},
+			wantUser:   user{ID: 1, Name: "Alice", Email: "alice@new.com", Password: "password123"},
 		},
 		"invalid_id": {
 			mockDB: mockDB{
 				mockCalled: false,
 			},
 			id:         "abc",
-			body:       User{Name: "Bob", Email: "bob@new.com", Password: "password123"},
+			body:       user{Name: "Bob", Email: "bob@new.com", Password: "password123"},
 			wantStatus: http.StatusBadRequest,
 		},
 		"validation_error": {
@@ -57,7 +57,7 @@ func TestUpdateUser(t *testing.T) {
 				mockCalled: false,
 			},
 			id:         "1",
-			body:       User{Name: "Bob", Email: "bob@new.com", Password: "pw"},
+			body:       user{Name: "Bob", Email: "bob@new.com", Password: "pw"},
 			wantStatus: http.StatusBadRequest,
 		},
 		"bad_json": {
@@ -76,7 +76,7 @@ func TestUpdateUser(t *testing.T) {
 				mockError:  sql.ErrNoRows,
 			},
 			id:         "3",
-			body:       User{Name: "Carol", Email: "carol@new.com", Password: "password123"},
+			body:       user{Name: "Carol", Email: "carol@new.com", Password: "password123"},
 			wantStatus: http.StatusNotFound,
 		},
 		"db_error": {
@@ -87,7 +87,7 @@ func TestUpdateUser(t *testing.T) {
 				mockError:  errors.New("db error"),
 			},
 			id:         "4",
-			body:       User{Name: "Dave", Email: "dave@new.com", Password: "password123"},
+			body:       user{Name: "Dave", Email: "dave@new.com", Password: "password123"},
 			wantStatus: http.StatusInternalServerError,
 		},
 	}
@@ -120,7 +120,7 @@ func TestUpdateUser(t *testing.T) {
 
 			var reqBody []byte
 			switch v := tc.body.(type) {
-			case User:
+			case user:
 				reqBody, _ = json.Marshal(v)
 			case string:
 				reqBody = []byte(v)
@@ -139,7 +139,7 @@ func TestUpdateUser(t *testing.T) {
 			}
 
 			if tc.wantStatus == http.StatusOK {
-				var gotUser User
+				var gotUser user
 				if err := json.NewDecoder(rec.Body).Decode(&gotUser); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}

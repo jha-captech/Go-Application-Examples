@@ -19,6 +19,7 @@ import (
 )
 
 func main() {
+	// Run the main application logic and handle any errors.
 	if err := run(context.Background()); err != nil {
 		fmt.Fprintf(os.Stderr, "run failed: %s", err.Error())
 		os.Exit(1)
@@ -26,22 +27,18 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
-	// Load and validate environment config
+	// Load and validate environment config from env vars or files.
 	cfg, err := app.NewConfig()
 	if err != nil {
 		return fmt.Errorf("[in main.run] failed to load config: %w", err)
 	}
 
-	// Create a structured logger, which will print logs in json format to the
-	// writer we specify.
+	// Create a structured logger that outputs JSON logs to stdout.
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
 	}))
 
-	// Create a new DB connection using environment config
+	// Connect to the PostgreSQL database using the provided config.
 	logger.DebugContext(ctx, "Connecting to and pinging the database")
 	db, err := sqlx.Connect("pgx", fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
@@ -51,7 +48,7 @@ func run(ctx context.Context) error {
 		cfg.DBName,
 		cfg.DBPort,
 	))
-
+	// Ensure the database connection is closed on exit.
 	defer func() {
 		logger.DebugContext(ctx, "Closing database connection")
 		if err = db.Close(); err != nil {
@@ -59,35 +56,48 @@ func run(ctx context.Context) error {
 		}
 	}()
 
+	// Create the main HTTP handler and wrap it with middleware for tracing, logging, and recovery.
 	handler := app.NewHandler(logger, db)
+	wrappedHandler := app.WrapHandler(
+		handler,
+		app.TraceIDMiddleware(),
+		app.LoggingMiddleware(logger),
+		app.RecoveryMiddleware(logger),
+	)
 
-	// Create a new http server with our mux as the handler
+	// Create the HTTP server with the wrapped handler.
 	httpServer := &http.Server{
 		Addr:    ":8080",
-		Handler: handler,
+		Handler: wrappedHandler,
 	}
 
-	// Create a new errgroup to handle graceful shutdown
+	// Set up context that cancels on SIGINT or SIGTERM for graceful shutdown.
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	// Use errgroup to manage goroutines and propagate errors.
 	eg, ctx := errgroup.WithContext(ctx)
 
+	// Register a shutdown function to be called when the context is cancelled.
 	context.AfterFunc(
-		ctx, 
+		ctx,
 		func() {
 			eg.Go(
 				func() error {
+					// Attempt graceful shutdown of the HTTP server.
 					if err := httpServer.Shutdown(ctx); err != nil {
 						return fmt.Errorf("failed to shutdown server: %w", err)
 					}
-
 					return nil
 				},
 			)
 		},
 	)
 
-	// Start the server
+	// Start the HTTP server.
 	logger.InfoContext(ctx, "Starting HTTP server", "addr", httpServer.Addr)
 
+	// Listen and serve; return error unless it's a normal server close.
 	if err = httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("[in main.run] failed to listen and serve: %w", err)
 	}

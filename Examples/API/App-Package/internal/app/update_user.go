@@ -26,8 +26,14 @@ import (
 func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+		
+		const funcName = "app.updateUser"
+		logger = logger.With(
+			slog.String("func", funcName),
+			getTraceIDAsAtter(ctx),
+		)
 
-		// Read id from path parameters
+		// read id from path parameters
 		idStr := r.PathValue("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -37,41 +43,27 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{ // ignore the error here because it should never happen with a defined struct
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
 			})
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
 			return
 		}
 
-		// Request validation
-		user, problems, err := decodeValid[User](r)
+		// request validation
+		user, problems, err := decodeValid[user](r)
 		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
 				ctx,
 				"failed to decode request",
 				slog.String("error", err.Error()))
 
-			encodeErr := encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{
 				Title:  "Bad Request",
 				Status: 400,
 				Detail: "Invalid request body.",
 			})
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
 			return
 		}
 		if len(problems) > 0 {
@@ -80,14 +72,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
-			encodeErr := encodeResponse(w, http.StatusBadRequest, NewValidationBadRequest(problems))
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusBadRequest, newValidationBadRequest(problems))
 			return
 		}
 
@@ -97,7 +82,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			slog.String("email", user.Email),
 		)
 
-		// Update user in db
+		// update user in db
 		query := `
             UPDATE users
             SET name = $1, email = $2, password = $3
@@ -107,29 +92,15 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		err = db.GetContext(ctx, &user, query, user.Name, user.Email, user.Password, id)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				encodeErr := encodeResponse(w, http.StatusNotFound, ProblemDetail{
+				_ = encodeResponse(w, http.StatusNotFound, problemDetail{
 					Title:  "User Not Found",
 					Status: http.StatusNotFound,
 					Detail: fmt.Sprintf("User with ID %d not found", id),
 				})
-				if encodeErr != nil {
-					logger.ErrorContext(
-						ctx,
-						"failed to encode response",
-						slog.String("error", encodeErr.Error()),
-					)
-				}
 				return
 			}
 			logger.ErrorContext(ctx, "failed to update user", slog.String("error", err.Error()))
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponse(w, http.StatusInternalServerError, newInternalServerError())
 			return
 		}
 
@@ -139,14 +110,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			slog.String("email", user.Email),
 		)
 
-		// Respond with updated user
-		encodeErr := encodeResponse(w, http.StatusOK, user)
-		if encodeErr != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", encodeErr.Error()),
-			)
-		}
+		// respond with updated user
+		_ = encodeResponse(w, http.StatusOK, user)
 	}
 }
