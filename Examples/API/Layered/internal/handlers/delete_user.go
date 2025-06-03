@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"example.com/examples/api/layered/internal/middleware"
 	"go.opentelemetry.io/otel/codes"
 )
 
@@ -22,7 +23,7 @@ type userDeleter interface {
 // @Accept		json
 // @Produce		json
 // @Param		id	path	string	true	"User ID"
-// @Success		200
+// @Success		204
 // @Failure		400	{object}	string
 // @Failure		404	{object}	string
 // @Failure		500	{object}	string
@@ -47,14 +48,15 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "ID conversion failed")
 			span.RecordError(err)
 
 			_ = encodeResponseJSON(
 				w, http.StatusBadRequest, ProblemDetail{
-					Title:  "Invalid ID",
-					Status: http.StatusBadRequest,
-					Detail: "The provided ID is not a valid integer.",
+					Title:   "Invalid ID",
+					Status:  http.StatusBadRequest,
+					Detail:  "The provided ID is not a valid integer.",
+					TraceID: middleware.GetTraceID(ctx),
 				},
 			)
 
@@ -69,16 +71,16 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				"failed to read user",
 				slog.String("error", err.Error()),
 			)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "user deletion failed")
 			span.RecordError(err)
 
-			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError(ctx))
 
 			return
 		}
 
 		// Encode the response model as JSON
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

@@ -48,7 +48,7 @@ func HandleHealthCheck(logger *slog.Logger, userHealth healthChecker) http.Handl
 			status = "unhealthy"
 			code = http.StatusInternalServerError
 			logger.ErrorContext(ctx, "health check failed", slog.String("error", err.Error()))
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "health check failed")
 			span.RecordError(err)
 		}
 

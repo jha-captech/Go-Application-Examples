@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
@@ -33,21 +34,6 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	otelShutdownFunc, err := telemetry.SetupOTelSDK(
-		ctx,
-		telemetry.Config{
-			Endpoint:    "jaeger:4317",
-			ServiceName: "api-layered-user-service",
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to setup OpenTelemetry SDK: %w", err)
-	}
-
-	defer func() {
-		err = errors.Join(err, otelShutdownFunc(ctx))
-	}()
-
 	// Load and validate environment config
 	cfg, err := config.New()
 	if err != nil {
@@ -66,6 +52,21 @@ func run(ctx context.Context) error {
 			ctxhandler.WithAtterFunc(middleware.GetTraceIDAsAttr),
 		),
 	)
+
+	otelShutdownFunc, err := telemetry.SetupOTelSDK(
+		ctx,
+		telemetry.Config{
+			Endpoint:    "jaeger:4317",
+			ServiceName: "api-layered-user-service",
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to setup OpenTelemetry SDK: %w", err)
+	}
+
+	defer func() {
+		err = errors.Join(err, otelShutdownFunc(ctx))
+	}()
 
 	// Create a new DB connection using environment config
 	logger.DebugContext(ctx, "Connecting to and pinging the database")
@@ -101,7 +102,7 @@ func run(ctx context.Context) error {
 	)
 
 	// Create a new users service
-	usersService := services.NewUsersService(logger, db, rdb, 0)
+	usersService := services.NewUsersService(logger, db, rdb, time.Duration(cfg.CacheExpiration)*time.Second)
 
 	// Create a serve mux to act as our route multiplexer
 	mux := telemetry.InstrumentServeMux(http.NewServeMux())
@@ -110,8 +111,6 @@ func run(ctx context.Context) error {
 	routes.AddRoutes(mux, logger, usersService)
 
 	// Wrap the mux with middleware
-	// add trace id to logger errors
-	// move instrumentation to after for full wrappage
 	wrappedMux := middleware.WrapHandler(
 		mux.InstrumentRootHandler(),
 		middleware.TraceID(),
@@ -134,6 +133,9 @@ func run(ctx context.Context) error {
 		ctx, func() {
 			eg.Go(
 				func() error {
+					<-ctx.Done()
+					logger.InfoContext(ctx, "Shutting down server gracefully")
+
 					if err := srv.Shutdown(ctx); err != nil {
 						return fmt.Errorf("[in main.run] failed to shutdown server: %w", err)
 					}

@@ -3,12 +3,12 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 
 	"go.opentelemetry.io/otel/codes"
 
+	"example.com/examples/api/layered/internal/middleware"
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -48,31 +48,31 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				slog.String("error", err.Error()),
 			)
 			// otel set error info
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "decoding request failed")
 			span.RecordError(err)
 
 			_ = encodeResponseJSON(
 				w, http.StatusInternalServerError, ProblemDetail{
-					Title:  "Bad Request",
-					Status: 400,
-					Detail: "Invalid request body.",
+					Title:   "Bad Request",
+					Status:  400,
+					Detail:  "Invalid request body.",
+					TraceID: middleware.GetTraceID(ctx),
 				},
 			)
 
 			return
 		}
 		if len(problems) > 0 {
-			validationError := "validation error"
+			validationError := "validation failed"
 			logger.ErrorContext(
 				ctx,
 				validationError,
-				slog.Any("problems", problems),
-				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
+				slog.Any("validation_errors", problems),
 			)
 			span.SetStatus(codes.Error, validationError)
 			span.RecordError(errors.New(validationError))
 
-			_ = encodeResponseJSON(w, http.StatusBadRequest, NewValidationBadRequest(problems))
+			_ = encodeResponseJSON(w, http.StatusBadRequest, NewValidationBadRequest(ctx, problems))
 
 			return
 		}
@@ -91,10 +91,10 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				"failed to create user",
 				slog.String("error", err.Error()),
 			)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "creating user failed")
 			span.RecordError(err)
 
-			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError(ctx))
 
 			return
 		}

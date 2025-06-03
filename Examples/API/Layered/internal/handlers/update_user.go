@@ -3,13 +3,13 @@ package handlers
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
 
 	"go.opentelemetry.io/otel/codes"
 
+	"example.com/examples/api/layered/internal/middleware"
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -53,13 +53,14 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "ID conversion failed")
 			span.RecordError(err)
 
 			_ = encodeResponseJSON(w, http.StatusBadRequest, ProblemDetail{
-				Title:  "Invalid ID",
-				Status: http.StatusBadRequest,
-				Detail: "The provided ID is not a valid integer.",
+				Title:   "Invalid ID",
+				Status:  http.StatusBadRequest,
+				Detail:  "The provided ID is not a valid integer.",
+				TraceID: middleware.GetTraceID(ctx),
 			})
 
 			return
@@ -72,24 +73,24 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				ctx,
 				"failed to decode request",
 				slog.String("error", err.Error()))
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "decoding request failed")
 			span.RecordError(err)
 
-			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError(ctx))
 
 			return
 		}
 		if len(problems) > 0 {
-			validationError := "validation error"
+			validationError := "validation failed"
 			logger.ErrorContext(
 				ctx,
 				validationError,
-				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
+				slog.Any("validation_errors", problems),
 			)
 			span.SetStatus(codes.Error, validationError)
 			span.RecordError(errors.New(validationError))
 
-			_ = encodeResponseJSON(w, http.StatusBadRequest, NewValidationBadRequest(problems))
+			_ = encodeResponseJSON(w, http.StatusBadRequest, NewValidationBadRequest(ctx, problems))
 
 			return
 		}
@@ -108,10 +109,10 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				"failed to update user",
 				slog.String("error", err.Error()),
 			)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "user update failed")
 			span.RecordError(err)
 
-			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError(ctx))
 
 			return
 		}

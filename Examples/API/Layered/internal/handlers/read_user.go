@@ -8,6 +8,7 @@ import (
 
 	"go.opentelemetry.io/otel/codes"
 
+	"example.com/examples/api/layered/internal/middleware"
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -50,13 +51,14 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "ID conversion failed")
 			span.RecordError(err)
 
 			_ = encodeResponseJSON(w, http.StatusBadRequest, ProblemDetail{
-				Title:  "Invalid ID",
-				Status: http.StatusBadRequest,
-				Detail: "The provided ID is not a valid integer.",
+				Title:   "Invalid ID",
+				Status:  http.StatusBadRequest,
+				Detail:  "The provided ID is not a valid integer.",
+				TraceID: middleware.GetTraceID(ctx),
 			})
 
 			return
@@ -70,10 +72,10 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 				"failed to read user",
 				slog.String("error", err.Error()),
 			)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "reading user failed")
 			span.RecordError(err)
 
-			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError(ctx))
 
 			return
 		}

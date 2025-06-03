@@ -11,18 +11,19 @@ import (
 // Config holds the application configuration settings. The configuration is loaded from
 // environment variables.
 type Config struct {
-	DBHost         string     `env:"DATABASE_HOST,required"`
-	DBUserName     string     `env:"DATABASE_USER,required"`
-	DBUserPassword string     `env:"DATABASE_PASSWORD,required"`
-	DBName         string     `env:"DATABASE_NAME,required"`
-	DBPort         string     `env:"DATABASE_PORT,required"`
-	Host           string     `env:"HOST,required"`
-	Port           string     `env:"PORT,required"`
-	LogLevel       slog.Level `env:"LOG_LEVEL,required"`
-	CacheHost      string     `env:"CACHE_HOST,required"`
-	CachePort      int        `env:"CACHE_PORT,required"`
-	CacheDB        int        `env:"CACHE_DB,required"`
-	CachePassword  string     `env:"CACHE_PASSWORD,required"`
+	DBHost          string     `env:"DATABASE_HOST,required"`
+	DBUserName      string     `env:"DATABASE_USER,required"`
+	DBUserPassword  string     `env:"DATABASE_PASSWORD,required"`
+	DBName          string     `env:"DATABASE_NAME,required"`
+	DBPort          string     `env:"DATABASE_PORT,required"`
+	Host            string     `env:"HOST,required"`
+	Port            string     `env:"PORT,required"`
+	LogLevel        slog.Level `env:"LOG_LEVEL,required"`
+	CacheHost       string     `env:"CACHE_HOST,required"`
+	CachePort       int        `env:"CACHE_PORT,required"`
+	CacheDB         int        `env:"CACHE_DB,required"`
+	CachePassword   string     `env:"CACHE_PASSWORD,required"`
+	CacheExpiration int        `env:"CACHE_EXPIRATION,required"`
 }
 
 // New loads configuration from environment variables and a .env file, and returns a

@@ -52,10 +52,10 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 				"failed to list users",
 				slog.String("error", err.Error()),
 			)
-			span.SetStatus(codes.Error, err.Error())
+			span.SetStatus(codes.Error, "listing users failed")
 			span.RecordError(err)
 
-			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError(ctx))
 
 			return
 		}
