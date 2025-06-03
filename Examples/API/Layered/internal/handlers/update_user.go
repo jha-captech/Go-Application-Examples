@@ -19,18 +19,20 @@ type userUpdater interface {
 	UpdateUser(ctx context.Context, id uint64, patch models.User) (models.User, error)
 }
 
+// HandleUpdateUser handles the updating of an existing user by ID.
+//
 // @Summary		Update User
 // @Description	Update User by ID
-// @Tags			user
-// @Accept			json
+// @Tags		user
+// @Accept		json
 // @Produce		json
-// @Param			id		path		string		true	"User ID"
-// @Param			request	body		UserRequest	true	"User to Create"
+// @Param		id		path		string		true	"User ID"
+// @Param		request	body		UserRequest	true	"User to Create"
 // @Success		200		{object}	models.User
 // @Failure		400		{object}	string
 // @Failure		404		{object}	string
 // @Failure		500		{object}	string
-// @Router			/user/{id}  [PUT]
+// @Router		/user/{id}  [PUT]
 func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.HandlerFunc {
 	const name = "handlers.HandleUpdateUser"
 	logger = logger.With(slog.String("func", name))

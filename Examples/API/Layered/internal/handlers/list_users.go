@@ -21,17 +21,19 @@ type listUsersResponse struct {
 	Users []UserResponse
 }
 
+// HandleListUsers handles the listing of all users.
+//
 // @Summary		List Users
 // @Description	List All Users
-// @Tags			user
-// @Accept			json
+// @Tags		user
+// @Accept		json
 // @Produce		json
-// @Param			name	query		string	false	"query param"
+// @Param		name	query		string	false	"query param"
 // @Success		200		{array}		models.User
 // @Failure		400		{object}	string
 // @Failure		404		{object}	string
 // @Failure		500		{object}	string
-// @Router			/user  [GET]
+// @Router		/user  [GET]
 func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerFunc {
 	const name = "handlers.HandleListUsers"
 	logger = logger.With(slog.String("func", name))

@@ -22,7 +22,7 @@ type healthResponse struct {
 	Checks services.DeepHealthStatus `json:"checks"`
 }
 
-// HandleHealthCheck handles the health check endpoint
+// HandleHealthCheck handles the deep health check endpoint.
 //
 //		@Summary		Health Check
 //		@Description	Health Check endpoint

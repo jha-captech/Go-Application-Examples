@@ -70,7 +70,7 @@ func GetTraceID(ctx context.Context) string {
 	return traceID
 }
 
-func GetTraceIDAsAtter(ctx context.Context) slog.Attr {
+func GetTraceIDAsAttr(ctx context.Context) slog.Attr {
 	traceID := GetTraceID(ctx)
 	if traceID == "" {
 		return slog.Attr{}
