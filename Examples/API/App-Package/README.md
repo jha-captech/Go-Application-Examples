@@ -1,30 +1,5 @@
 # App Package Architecture
 
-## Application Usage
-
-### Install Dependencies
-
-These docs assume the brew is already installed on your system. For more information on installing go-task, see the instructions [here](https://taskfile.dev/installation/).
-
-```bash
-# Install Go Task
-brew install go-task/tap/go-task
-```
-
-All other dependencies can be installed with:
-
-```bash
-task setup:deps
-```
-
-### Run the Application
-
-- Run database and migrations
-
-    ```bash
-    task db:start
-    ```
-
 ## Architecture Explanation
 
 ### File Structure
@@ -158,3 +133,28 @@ task setup:deps
   The architecture relies on developer discipline rather than structural enforcement, which can lead to deviations from best practices over time.
 - **Migration Overhead:**  
   If the project outgrows this architecture, migrating to a more layered or modular structure may require significant refactoring.
+
+## Application Usage
+
+### Install Dependencies
+
+These docs assume the brew is already installed on your system. For more information on installing go-task, see the instructions [here](https://taskfile.dev/installation/).
+
+```bash
+# Install Go Task
+brew install go-task/tap/go-task
+```
+
+All other dependencies can be installed with:
+
+```bash
+task setup:deps
+```
+
+### Run the Application
+
+- Run database and migrations
+
+    ```bash
+    task db:start
+    ```
