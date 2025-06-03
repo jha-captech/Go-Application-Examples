@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"go.opentelemetry.io/otel/codes"
+
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -48,6 +50,8 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 				"failed to list users",
 				slog.String("error", err.Error()),
 			)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 

@@ -33,7 +33,6 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-
 	otelShutdownFunc, err := telemetry.SetupOTelSDK(
 		ctx,
 		telemetry.Config{

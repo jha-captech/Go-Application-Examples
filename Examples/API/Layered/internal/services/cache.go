@@ -30,7 +30,7 @@ type StatusCmd struct {
 	*redis.StatusCmd
 }
 
-func (c *Client) SetMarshal(ctx context.Context, key string, value interface{}) error {
+func (c *Client) SetMarshal(ctx context.Context, key string, value any) error {
 	jsonData, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("[in services.Client.Set] failed to marshal value: %w", err)
@@ -82,7 +82,10 @@ func (cmd *StringCmd) Unmarshal(v any) (bool, error) {
 	}
 
 	if err = json.Unmarshal([]byte(val), v); err != nil {
-		return false, fmt.Errorf("[in services.StringCmd.Unmarshal] failed to unmarshal from cache: %w", err)
+		return false, fmt.Errorf(
+			"[in services.StringCmd.Unmarshal] failed to unmarshal from cache: %w",
+			err,
+		)
 	}
 
 	return true, nil

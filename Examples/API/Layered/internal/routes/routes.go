@@ -21,7 +21,11 @@ import (
 // @BasePath					/api
 // @externalDocs.description	OpenAPI
 // @externalDocs.url			https://swagger.io/resources/open-api/
-func AddRoutes(mux *telemetry.InstrumentedServeMux, logger *slog.Logger, usersService *services.UsersService) {
+func AddRoutes(
+	mux *telemetry.InstrumentedServeMux,
+	logger *slog.Logger,
+	usersService *services.UsersService,
+) {
 	// User endpoints
 	mux.Handle("GET /api/user/{id}", handlers.HandleReadUser(logger, usersService))
 	mux.Handle("GET /api/user", handlers.HandleListUsers(logger, usersService))
@@ -30,5 +34,5 @@ func AddRoutes(mux *telemetry.InstrumentedServeMux, logger *slog.Logger, usersSe
 	mux.Handle("DELETE /api/user/{id}", handlers.HandleDeleteUser(logger, usersService))
 
 	// Health check
-	mux.Handle("GET /api/health", handlers.HandleHealthCheck(logger))
+	mux.Handle("GET /api/health", handlers.HandleHealthCheck(logger, usersService))
 }

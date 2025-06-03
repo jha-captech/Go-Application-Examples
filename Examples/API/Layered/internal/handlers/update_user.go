@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"go.opentelemetry.io/otel/codes"
 
 	"example.com/examples/api/layered/internal/models"
 )
@@ -48,6 +51,8 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
@@ -65,19 +70,26 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				ctx,
 				"failed to decode request",
 				slog.String("error", err.Error()))
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
 		if len(problems) > 0 {
+			validationError := "validation error"
 			logger.ErrorContext(
 				ctx,
-				"Validation error",
+				validationError,
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
+			span.SetStatus(codes.Error, validationError)
+			span.RecordError(errors.New(validationError))
 
-			NewValidationBadRequest(problems)
+			_ = encodeResponse(w, http.StatusBadRequest, NewValidationBadRequest(problems))
+
+			return
 		}
 
 		modelRequest := models.User{
@@ -94,6 +106,8 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 				"failed to update user",
 				slog.String("error", err.Error()),
 			)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 

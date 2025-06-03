@@ -1,25 +1,38 @@
 package handlers
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
+
+	"go.opentelemetry.io/otel/codes"
+
+	"example.com/examples/api/layered/internal/services"
 )
+
+// userCreator represents a type capable of reading a user from storage and
+// returning it or an error.
+type healthChecker interface {
+	DeepHealthCheck(ctx context.Context) (services.DeepHealthStatus, error)
+}
 
 // healthResponse represents the response for the health check.
 type healthResponse struct {
-	Status string `json:"status"`
+	Status string                    `json:"status"`
+	Checks services.DeepHealthStatus `json:"checks"`
 }
 
 // HandleHealthCheck handles the health check endpoint
 //
-//	@Summary		Health Check
-//	@Description	Health Check endpoint
-//	@Tags			health
-//	@Accept			json
-//	@Produce		json
-//	@Success		200		{object}	healthResponse
-//	@Router			/health	[GET]
-func HandleHealthCheck(logger *slog.Logger) http.HandlerFunc {
+//		@Summary		Health Check
+//		@Description	Health Check endpoint
+//		@Tags			health
+//		@Accept			json
+//		@Produce		json
+//		@Success		200		{object}	healthResponse
+//	 	@Failure		500		{object}	healthResponse
+//		@Router			/health	[GET]
+func HandleHealthCheck(logger *slog.Logger, userHealth healthChecker) http.HandlerFunc {
 	const name = "handlers.HandleHealthCheck"
 	logger = logger.With(slog.String("func", name))
 
@@ -28,6 +41,20 @@ func HandleHealthCheck(logger *slog.Logger) http.HandlerFunc {
 		defer span.End()
 		logger.InfoContext(ctx, "health check called")
 
-		_ = encodeResponse(w, http.StatusOK, healthResponse{Status: "ok"})
+		checks, err := userHealth.DeepHealthCheck(ctx)
+		status := "ok"
+		code := http.StatusOK
+		if err != nil {
+			status = "unhealthy"
+			code = http.StatusInternalServerError
+			logger.ErrorContext(ctx, "health check failed", slog.String("error", err.Error()))
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
+		}
+
+		_ = encodeResponse(w, code, healthResponse{
+			Status: status,
+			Checks: checks,
+		})
 	}
 }

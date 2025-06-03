@@ -8,8 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"example.com/examples/api/layered/internal/models"
 	"github.com/stretchr/testify/assert"
+
+	"example.com/examples/api/layered/internal/models"
 )
 
 func TestHandleDeleteUser(t *testing.T) {

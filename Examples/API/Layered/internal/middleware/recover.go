@@ -24,7 +24,6 @@ func Recover(logger *slog.Logger) Func {
 				}
 			}()
 			next.ServeHTTP(w, r)
-
 		})
 	}
 }

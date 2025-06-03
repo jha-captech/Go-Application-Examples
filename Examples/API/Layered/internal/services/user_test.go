@@ -1,19 +1,93 @@
 package services
 
 import (
+	"context"
 	"database/sql/driver"
+	"errors"
 	"log/slog"
 	"regexp"
 	"strconv"
 	"testing"
 
-	"example.com/examples/api/layered/internal/models"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-redis/redismock/v9"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+
+	"example.com/examples/api/layered/internal/models"
 )
+
+func TestUsersService_DeepHealthCheck(t *testing.T) {
+	type fields struct {
+		dbErr    error
+		cacheErr error
+	}
+	tests := map[string]struct {
+		fields      fields
+		wantStatus  DeepHealthStatus
+		wantErr     bool
+		errContains string
+	}{
+		"healthy": {
+			fields:      fields{dbErr: nil, cacheErr: nil},
+			wantStatus:  DeepHealthStatus{DB: "ok", Cache: "ok"},
+			wantErr:     false,
+			errContains: "",
+		},
+		"db ping error": {
+			fields:      fields{dbErr: errors.New("db down"), cacheErr: nil},
+			wantStatus:  DeepHealthStatus{DB: "unhealthy", Cache: "ok"},
+			wantErr:     true,
+			errContains: "failed to ping database",
+		},
+		"cache ping error": {
+			fields:      fields{dbErr: nil, cacheErr: errors.New("cache down")},
+			wantStatus:  DeepHealthStatus{DB: "ok", Cache: "unhealthy"},
+			wantErr:     true,
+			errContains: "failed to ping cache",
+		},
+		"both ping error": {
+			fields:      fields{dbErr: errors.New("db down"), cacheErr: errors.New("cache down")},
+			wantStatus:  DeepHealthStatus{DB: "unhealthy", Cache: "unhealthy"},
+			wantErr:     true,
+			errContains: "failed to ping database",
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
+			assert.NoError(t, err)
+			defer db.Close()
+
+			// Mock DB ping
+			mock.ExpectPing().WillReturnError(tc.fields.dbErr)
+
+			// Mock cache ping
+			rdb, rmock := redismock.NewClientMock()
+			if tc.fields.cacheErr == nil {
+				rmock.ExpectPing().SetVal("OK")
+			} else {
+				rmock.ExpectPing().SetErr(tc.fields.cacheErr)
+			}
+
+			logger := slog.Default()
+			us := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"), rdb, 0)
+
+			status, err := us.DeepHealthCheck(context.Background())
+			assert.Equal(t, tc.wantStatus, status)
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errContains)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.NoError(t, mock.ExpectationsWereMet())
+			assert.NoError(t, rmock.ExpectationsWereMet())
+		})
+	}
+}
 
 func TestUsersService_ReadUser(t *testing.T) {
 	testcases := map[string]struct {
@@ -45,7 +119,10 @@ func TestUsersService_ReadUser(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db, mock, err := sqlmock.New()
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Fatalf(
+					"an error '%s' was not expected when opening a stub database connection",
+					err,
+				)
 			}
 			defer db.Close()
 
@@ -152,7 +229,10 @@ func TestUsersService_ListUsers(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db, mock, err := sqlmock.New()
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Fatalf(
+					"an error '%s' was not expected when opening a stub database connection",
+					err,
+				)
 			}
 			defer db.Close()
 
@@ -212,7 +292,10 @@ func TestBlogsService_DeleteUser(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db, mock, err := sqlmock.New()
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Fatalf(
+					"an error '%s' was not expected when opening a stub database connection",
+					err,
+				)
 			}
 			defer db.Close()
 
@@ -276,7 +359,10 @@ func TestUsersService_CreateUser(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db, mock, err := sqlmock.New()
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Fatalf(
+					"an error '%s' was not expected when opening a stub database connection",
+					err,
+				)
 			}
 			defer db.Close()
 
@@ -343,7 +429,10 @@ func TestUsersService_UpdateUser(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db, mock, err := sqlmock.New()
 			if err != nil {
-				t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+				t.Fatalf(
+					"an error '%s' was not expected when opening a stub database connection",
+					err,
+				)
 			}
 			defer db.Close()
 

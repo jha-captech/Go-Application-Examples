@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"example.com/examples/api/layered/internal/models"
+	"example.com/examples/api/layered/internal/services"
 )
 
 // Ensure that moquserCreator does implement userCreator.
@@ -152,6 +153,72 @@ func (mock *moquserDeleter) DeleteUserCalls() []struct {
 	mock.lockDeleteUser.RLock()
 	calls = mock.calls.DeleteUser
 	mock.lockDeleteUser.RUnlock()
+	return calls
+}
+
+// Ensure that moqhealthChecker does implement healthChecker.
+// If this is not the case, regenerate this file with mockery.
+var _ healthChecker = &moqhealthChecker{}
+
+// moqhealthChecker is a mock implementation of healthChecker.
+//
+//	func TestSomethingThatUseshealthChecker(t *testing.T) {
+//
+//		// make and configure a mocked healthChecker
+//		mockedhealthChecker := &moqhealthChecker{
+//			DeepHealthCheckFunc: func(ctx context.Context) (services.DeepHealthStatus, error) {
+//				panic("mock out the DeepHealthCheck method")
+//			},
+//		}
+//
+//		// use mockedhealthChecker in code that requires healthChecker
+//		// and then make assertions.
+//
+//	}
+type moqhealthChecker struct {
+	// DeepHealthCheckFunc mocks the DeepHealthCheck method.
+	DeepHealthCheckFunc func(ctx context.Context) (services.DeepHealthStatus, error)
+
+	// calls tracks calls to the methods.
+	calls struct {
+		// DeepHealthCheck holds details about calls to the DeepHealthCheck method.
+		DeepHealthCheck []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
+		}
+	}
+	lockDeepHealthCheck sync.RWMutex
+}
+
+// DeepHealthCheck calls DeepHealthCheckFunc.
+func (mock *moqhealthChecker) DeepHealthCheck(ctx context.Context) (services.DeepHealthStatus, error) {
+	if mock.DeepHealthCheckFunc == nil {
+		panic("moqhealthChecker.DeepHealthCheckFunc: method is nil but healthChecker.DeepHealthCheck was just called")
+	}
+	callInfo := struct {
+		Ctx context.Context
+	}{
+		Ctx: ctx,
+	}
+	mock.lockDeepHealthCheck.Lock()
+	mock.calls.DeepHealthCheck = append(mock.calls.DeepHealthCheck, callInfo)
+	mock.lockDeepHealthCheck.Unlock()
+	return mock.DeepHealthCheckFunc(ctx)
+}
+
+// DeepHealthCheckCalls gets all the calls that were made to DeepHealthCheck.
+// Check the length with:
+//
+//	len(mockedhealthChecker.DeepHealthCheckCalls())
+func (mock *moqhealthChecker) DeepHealthCheckCalls() []struct {
+	Ctx context.Context
+} {
+	var calls []struct {
+		Ctx context.Context
+	}
+	mock.lockDeepHealthCheck.RLock()
+	calls = mock.calls.DeepHealthCheck
+	mock.lockDeepHealthCheck.RUnlock()
 	return calls
 }
 

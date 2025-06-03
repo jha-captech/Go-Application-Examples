@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"go.opentelemetry.io/otel/codes"
+
 	"example.com/examples/api/layered/internal/models"
 )
 
@@ -46,6 +48,8 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
@@ -64,6 +68,8 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 				"failed to read user",
 				slog.String("error", err.Error()),
 			)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 

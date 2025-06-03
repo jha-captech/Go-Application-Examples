@@ -9,9 +9,10 @@ import (
 	"strconv"
 	"time"
 
-	"example.com/examples/api/layered/internal/models"
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
+
+	"example.com/examples/api/layered/internal/models"
 )
 
 // UsersService is a service capable of performing CRUD operations for
@@ -23,12 +24,58 @@ type UsersService struct {
 }
 
 // NewUsersService creates a new UsersService and returns a pointer to it.
-func NewUsersService(logger *slog.Logger, db *sqlx.DB, rdb *redis.Client, expiration time.Duration) *UsersService {
+func NewUsersService(
+	logger *slog.Logger,
+	db *sqlx.DB,
+	rdb *redis.Client,
+	expiration time.Duration,
+) *UsersService {
 	return &UsersService{
 		logger: logger,
 		db:     db,
 		cache:  NewClient(rdb, expiration),
 	}
+}
+
+// DeepHealthStatus represents the status of each dependency.
+type DeepHealthStatus struct {
+	DB    string `json:"db"`
+	Cache string `json:"cache"`
+}
+
+// DeepHealthCheck checks the health of the DB and cache, returning their statuses and an error if any are unhealthy.
+func (s *UsersService) DeepHealthCheck(ctx context.Context) (DeepHealthStatus, error) {
+	logger := s.logger.With(slog.String("func", "services.UsersService.DeepHealthCheck"))
+	logger.DebugContext(ctx, "Performing deep health check")
+
+	status := DeepHealthStatus{DB: "ok", Cache: "ok"}
+	var err error
+
+	// Check the database connection
+	if dbErr := s.db.PingContext(ctx); dbErr != nil {
+		status.DB = "unhealthy"
+		err = fmt.Errorf(
+			"[in services.UsersService.DeepHealthCheck] failed to ping database: %w",
+			dbErr,
+		)
+	}
+
+	// Check the cache connection
+	if cacheErr := s.cache.Client.Ping(ctx).Err(); cacheErr != nil {
+		status.Cache = "unhealthy"
+		if err != nil {
+			// Both failed, combine errors
+			err = fmt.Errorf(
+				"%v; [in services.UsersService.DeepHealthCheck] failed to ping cache: %w",
+				err,
+				cacheErr,
+			)
+		} else {
+			err = fmt.Errorf("[in services.UsersService.DeepHealthCheck] failed to ping cache: %w", cacheErr)
+		}
+	}
+
+	return status, err
 }
 
 // CreateUser attempts to create the provided user, returning a fully hydrated
@@ -37,8 +84,9 @@ func (s *UsersService) CreateUser(ctx context.Context, user models.User) (models
 	logger := s.logger.With(slog.String("func", "services.UsersService.CreateUser"))
 	logger.DebugContext(ctx, "Creating user", "name", user.Name)
 
-	err := s.db.QueryRowContext(
+	err := s.db.GetContext(
 		ctx,
+		&user.ID,
 		`
 		INSERT 
 		INTO users (name, email, password) 
@@ -48,7 +96,7 @@ func (s *UsersService) CreateUser(ctx context.Context, user models.User) (models
 		user.Name,
 		user.Email,
 		user.Password,
-	).Scan(&user.ID)
+	)
 	if err != nil {
 		return models.User{}, fmt.Errorf(
 			"[in services.UsersService.CreateUser] failed to create user: %w",
@@ -59,7 +107,10 @@ func (s *UsersService) CreateUser(ctx context.Context, user models.User) (models
 	// Write the user to the cache
 	logger.DebugContext(ctx, "Setting user in cache", "id", user.ID)
 	if err = s.cache.SetMarshal(ctx, strconv.Itoa(int(user.ID)), user); err != nil {
-		return models.User{}, fmt.Errorf("[in services.UsersService.CreateUser] failed to write user to cache: %w", err)
+		return models.User{}, fmt.Errorf(
+			"[in services.UsersService.CreateUser] failed to write user to cache: %w",
+			err,
+		)
 	}
 
 	return user, nil
@@ -128,7 +179,11 @@ func (s *UsersService) ReadUser(ctx context.Context, id uint64) (models.User, er
 // UpdateUser attempts to perform an update of the user with the provided id,
 // updating, it to reflect the properties on the provided patch object. A
 // models.User or an error.
-func (s *UsersService) UpdateUser(ctx context.Context, id uint64, patch models.User) (models.User, error) {
+func (s *UsersService) UpdateUser(
+	ctx context.Context,
+	id uint64,
+	patch models.User,
+) (models.User, error) {
 	logger := s.logger.With(slog.String("func", "services.UsersService.UpdateUser"))
 	logger.DebugContext(ctx, "Updating user", "id", id, "patch", patch)
 
@@ -154,16 +209,23 @@ func (s *UsersService) UpdateUser(ctx context.Context, id uint64, patch models.U
 	// Read the updated user from the database
 	user, err := s.ReadUser(ctx, id)
 	if err != nil {
-		return models.User{}, fmt.Errorf("[in services.UsersService.UpdateUser] failed to read updated user: %w", err)
+		return models.User{}, fmt.Errorf(
+			"[in services.UsersService.UpdateUser] failed to read updated user: %w",
+			err,
+		)
 	}
 
 	// Write the updated user to the cache
 	logger.DebugContext(ctx, "Setting updated user in cache", "id", id)
 	if err = s.cache.SetMarshal(ctx, strconv.FormatUint(id, 10), user); err != nil {
-		return models.User{}, fmt.Errorf("[in services.UsersService.UpdateUser] failed to write updated user to cache: %w", err)
+		return models.User{}, fmt.Errorf(
+			"[in services.UsersService.UpdateUser] failed to write updated user to cache: %w",
+			err,
+		)
 	}
 
 	patch.ID = uint(id)
+
 	return patch, nil
 }
 
@@ -193,7 +255,10 @@ func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
 	// Remove the user from the cache
 	logger.DebugContext(ctx, "Removing user from cache", "id", id)
 	if err = s.cache.Del(ctx, strconv.FormatUint(id, 10)).Err(); err != nil {
-		return fmt.Errorf("[in services.UsersService.DeleteUser] failed to remove user from cache: %w", err)
+		return fmt.Errorf(
+			"[in services.UsersService.DeleteUser] failed to remove user from cache: %w",
+			err,
+		)
 	}
 
 	return nil

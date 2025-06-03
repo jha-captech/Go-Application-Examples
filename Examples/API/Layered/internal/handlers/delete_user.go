@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"go.opentelemetry.io/otel/codes"
 )
 
 // uerDeleter represents a type capable of deleting a user from storage
@@ -43,6 +45,8 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
@@ -61,6 +65,8 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 				"failed to read user",
 				slog.String("error", err.Error()),
 			)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 

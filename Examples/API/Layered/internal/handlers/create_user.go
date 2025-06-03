@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+
+	"go.opentelemetry.io/otel/codes"
 
 	"example.com/examples/api/layered/internal/models"
 )
@@ -43,6 +46,7 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				slog.String("error", err.Error()),
 			)
 			// otel set error info
+			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusInternalServerError, ProblemDetail{
@@ -54,11 +58,14 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 			return
 		}
 		if len(problems) > 0 {
+			validationError := "validation error"
 			logger.ErrorContext(
 				ctx,
-				"Validation error",
+				validationError,
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
+			span.SetStatus(codes.Error, validationError)
+			span.RecordError(errors.New(validationError))
 
 			_ = encodeResponse(w, http.StatusBadRequest, NewValidationBadRequest(problems))
 
@@ -79,6 +86,8 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				"failed to create user",
 				slog.String("error", err.Error()),
 			)
+			span.SetStatus(codes.Error, err.Error())
+			span.RecordError(err)
 
 			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
 
