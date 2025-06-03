@@ -22,7 +22,7 @@ func TestListUsers(t *testing.T) {
 	testcases := map[string]struct {
 		mockDB
 		wantStatus int
-		wantUsers  []User
+		wantUsers  []user
 	}{
 		"success": {
 			mockDB: mockDB{
@@ -32,7 +32,7 @@ func TestListUsers(t *testing.T) {
 				mockError: nil,
 			},
 			wantStatus: http.StatusOK,
-			wantUsers: []User{
+			wantUsers: []user{
 				{ID: 1, Name: "Alice", Email: "alice@example.com", Password: "pw1"},
 				{ID: 2, Name: "Bob", Email: "bob@example.com", Password: "pw2"},
 			},
@@ -43,7 +43,7 @@ func TestListUsers(t *testing.T) {
 				mockError: nil,
 			},
 			wantStatus: http.StatusOK,
-			wantUsers:  []User{},
+			wantUsers:  []user{},
 		},
 		"scan_error": {
 			mockDB: mockDB{
@@ -96,7 +96,7 @@ func TestListUsers(t *testing.T) {
 			}
 
 			if tc.wantStatus == http.StatusOK {
-				var gotUsers []User
+				var gotUsers []user
 				if err := json.NewDecoder(rec.Body).Decode(&gotUsers); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}

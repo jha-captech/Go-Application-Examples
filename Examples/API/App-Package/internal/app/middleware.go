@@ -10,10 +10,11 @@ import (
 	"github.com/google/uuid"
 )
 
-// MiddlewareFunc is a middleware function that wraps an http.Handler.
-type MiddlewareFunc = func(next http.Handler) http.Handler
+// middlewareFunc is a middleware function that wraps an http.Handler.
+type middlewareFunc = func(next http.Handler) http.Handler
 
-func WrapHandler(handler http.Handler, middlewares ...MiddlewareFunc) http.Handler {
+// WrapHandler applies a list of middlewares to an http.Handler in reverse order.
+func WrapHandler(handler http.Handler, middlewares ...middlewareFunc) http.Handler {
 	if len(middlewares) <= 0 {
 		return handler
 	}
@@ -27,20 +28,20 @@ func WrapHandler(handler http.Handler, middlewares ...MiddlewareFunc) http.Handl
 	return next
 }
 
-// logging middleware
+// wrappedWriter is a custom http.ResponseWriter that captures the status code.
 type wrappedWriter struct {
 	http.ResponseWriter
 	statusCode int
 }
 
+// writeHeader writes the HTTP status code and stores it in the wrappedWriter.
 func (w *wrappedWriter) writeHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 	w.statusCode = statusCode
 }
 
-// LoggingMiddleware is a middleware that logs the request method, path, duration, and
-// status code.
-func LoggingMiddleware(logger *slog.Logger) MiddlewareFunc {
+// LoggingMiddleware logs the HTTP request method, path, duration, and status code.
+func LoggingMiddleware(logger *slog.Logger) middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -64,9 +65,8 @@ func LoggingMiddleware(logger *slog.Logger) MiddlewareFunc {
 	}
 }
 
-// recoveryMiddleware is a middleware that recover from panics that occur in the handlers,
-// logs the error, and returns a 500 status code.
-func RecoveryMiddleware(logger *slog.Logger) MiddlewareFunc {
+// RecoveryMiddleware recovers from panics in the handler chain, logs the error, and returns a 500 status code.
+func RecoveryMiddleware(logger *slog.Logger) middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -88,23 +88,26 @@ func RecoveryMiddleware(logger *slog.Logger) MiddlewareFunc {
 	}
 }
 
-// traceId middleware
+// traceIDKey is a unique type for storing the trace ID in the context.
 type traceIDKey struct{}
 
+// traceIdOptions holds options for the traceIDMiddleware.
 type traceIdOptions struct {
 	header string
 }
 
+// traceIDOption is a function that modifies traceIdOptions.
 type traceIDOption func(*traceIdOptions)
 
-// WithHeader sets the header name for the trace ID.
-func WithHeader(header string) traceIDOption {
+// withHeader sets the header name for the trace ID to be extracted from the request.
+func withHeader(header string) traceIDOption {
 	return func(opts *traceIdOptions) {
 		opts.header = header
 	}
 }
 
-func TraceIDMiddleware(options ...traceIDOption) MiddlewareFunc {
+// TraceIDMiddleware injects a trace ID into the request context.
+func TraceIDMiddleware(options ...traceIDOption) middlewareFunc {
 	opts := &traceIdOptions{
 		header: "",
 	}
@@ -119,7 +122,7 @@ func TraceIDMiddleware(options ...traceIDOption) MiddlewareFunc {
 				traceID := ""
 
 				if opts.header != "" {
-					traceID = r.Header.Get("X-Trace-ID")
+					traceID = r.Header.Get("X-Trace-Id")
 				}
 
 				if traceID == "" {
@@ -138,6 +141,7 @@ func TraceIDMiddleware(options ...traceIDOption) MiddlewareFunc {
 	}
 }
 
+// getTraceID retrieves the trace ID from the context, if present.
 func getTraceID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -151,6 +155,7 @@ func getTraceID(ctx context.Context) string {
 	return traceID
 }
 
+// getTraceIDAsAtter returns the trace ID as a slog.Attr for structured logging.
 func getTraceIDAsAtter(ctx context.Context) slog.Attr {
 	traceID := getTraceID(ctx)
 	if traceID == "" {

@@ -21,12 +21,13 @@ func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		const funcName = "app.listUsers"
 		logger = logger.With(
 			slog.String("func", funcName),
-			slog.Any("traceId", ctx.Value(traceIDKey{})),
+			getTraceIDAsAtter(ctx),
 		)
 
 		logger.InfoContext(ctx, "Listing all users")
 
-		var users []User
+		// query db to get all users
+		var users []user
 		err := db.SelectContext(
 			ctx,
 			&users,
@@ -38,7 +39,7 @@ func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query users", slog.String("error", err.Error()))
-			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError()) // ignore the error here because it should never happen with a defined struct
+			_ = encodeResponse(w, http.StatusInternalServerError, newInternalServerError()) // ignore the error here because it should never happen with a defined struct
 			return
 		}
 

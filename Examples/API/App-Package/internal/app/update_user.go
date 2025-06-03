@@ -30,10 +30,10 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		const funcName = "app.updateUser"
 		logger = logger.With(
 			slog.String("func", funcName),
-			slog.Any("traceId", ctx.Value(traceIDKey{})),
+			getTraceIDAsAtter(ctx),
 		)
 
-		// Read id from path parameters
+		// read id from path parameters
 		idStr := r.PathValue("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -43,7 +43,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{ // ignore the error here because it should never happen with a defined struct
+			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{ // ignore the error here because it should never happen with a defined struct
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
@@ -51,15 +51,15 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		// Request validation
-		user, problems, err := decodeValid[User](r)
+		// request validation
+		user, problems, err := decodeValid[user](r)
 		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
 				ctx,
 				"failed to decode request",
 				slog.String("error", err.Error()))
 
-			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{
 				Title:  "Bad Request",
 				Status: 400,
 				Detail: "Invalid request body.",
@@ -72,7 +72,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
-			_ = encodeResponse(w, http.StatusBadRequest, NewValidationBadRequest(problems))
+			_ = encodeResponse(w, http.StatusBadRequest, newValidationBadRequest(problems))
 			return
 		}
 
@@ -82,7 +82,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			slog.String("email", user.Email),
 		)
 
-		// Update user in db
+		// update user in db
 		query := `
             UPDATE users
             SET name = $1, email = $2, password = $3
@@ -92,7 +92,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		err = db.GetContext(ctx, &user, query, user.Name, user.Email, user.Password, id)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				_ = encodeResponse(w, http.StatusNotFound, ProblemDetail{
+				_ = encodeResponse(w, http.StatusNotFound, problemDetail{
 					Title:  "User Not Found",
 					Status: http.StatusNotFound,
 					Detail: fmt.Sprintf("User with ID %d not found", id),
@@ -100,7 +100,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				return
 			}
 			logger.ErrorContext(ctx, "failed to update user", slog.String("error", err.Error()))
-			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponse(w, http.StatusInternalServerError, newInternalServerError())
 			return
 		}
 
@@ -110,7 +110,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			slog.String("email", user.Email),
 		)
 
-		// Respond with updated user
+		// respond with updated user
 		_ = encodeResponse(w, http.StatusOK, user)
 	}
 }

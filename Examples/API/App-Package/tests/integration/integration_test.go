@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestReadUser verifies that the API correctly returns user details for each user ID.
+// It checks that the returned user data matches the expected name, email, and password for each user.
 func TestReadUser(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -58,6 +60,8 @@ func TestReadUser(t *testing.T) {
 	}
 }
 
+// TestListUsers verifies that the API returns the complete list of users.
+// It checks that the number of users and their details match the expected values.
 func TestListUsers(t *testing.T) {
 	t.Parallel()
 
@@ -108,6 +112,8 @@ func TestListUsers(t *testing.T) {
 	}
 }
 
+// TestCreateUser verifies that a new user can be created via the API.
+// It checks that the response contains the correct user data and that the user is inserted into the database.
 func TestCreateUser(t *testing.T) {
 	t.Parallel()
 
@@ -176,6 +182,8 @@ func TestCreateUser(t *testing.T) {
 	assert.Equal(t, createdUser.ID, dbUser.ID, "DB user ID mismatch with API response")
 }
 
+// TestUpdateUser verifies that an existing user's details can be updated via the API.
+// It checks that the response and the database reflect the updated user information.
 func TestUpdateUser(t *testing.T) {
 	t.Parallel()
 
@@ -247,6 +255,8 @@ func TestUpdateUser(t *testing.T) {
 	assert.Equal(t, 1, dbUser.ID, "DB user ID mismatch after update")
 }
 
+// TestDeleteUser verifies that a user can be deleted via the API.
+// It checks that the API returns the correct status and that the user is removed from the database.
 func TestDeleteUser(t *testing.T) {
 	t.Parallel()
 

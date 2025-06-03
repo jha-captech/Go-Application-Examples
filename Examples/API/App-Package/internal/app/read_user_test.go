@@ -27,7 +27,7 @@ func TestReadUser(t *testing.T) {
 		mockDB
 		id         string
 		wantStatus int
-		wantUser   User
+		wantUser   user
 	}{
 		"success": {
 			mockDB: mockDB{
@@ -39,7 +39,7 @@ func TestReadUser(t *testing.T) {
 			},
 			id:         "1",
 			wantStatus: http.StatusOK,
-			wantUser: User{
+			wantUser: user{
 				ID:       1,
 				Name:     "Alice",
 				Email:    "alice@example.com",
@@ -55,7 +55,7 @@ func TestReadUser(t *testing.T) {
 			},
 			id:         "abc",
 			wantStatus: http.StatusBadRequest,
-			wantUser:   User{},
+			wantUser:   user{},
 		},
 		"not_found": {
 			mockDB: mockDB{
@@ -66,7 +66,7 @@ func TestReadUser(t *testing.T) {
 			},
 			id:         "2",
 			wantStatus: http.StatusNotFound,
-			wantUser:   User{},
+			wantUser:   user{},
 		},
 		"db_error": {
 			mockDB: mockDB{
@@ -77,7 +77,7 @@ func TestReadUser(t *testing.T) {
 			},
 			id:         "3",
 			wantStatus: http.StatusInternalServerError,
-			wantUser:   User{},
+			wantUser:   user{},
 		},
 	}
 
@@ -119,7 +119,7 @@ func TestReadUser(t *testing.T) {
 			}
 
 			if tc.wantStatus == http.StatusOK {
-				var gotUser User
+				var gotUser user
 				if err := json.NewDecoder(rec.Body).Decode(&gotUser); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}

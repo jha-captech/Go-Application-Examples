@@ -10,7 +10,9 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// NewTestDB returns an in-memory SQLite DB with a users table and some test data.
+// newTestDB creates and returns an in-memory SQLite database
+// pre-populated with a 'users' table and some test user data.
+// This is useful for integration tests that require a database.
 func newTestDB() (*sqlx.DB, error) {
 	db, err := sqlx.Open("sqlite3", ":memory:")
 	if err != nil {
@@ -31,6 +33,7 @@ func newTestDB() (*sqlx.DB, error) {
         ('Dave', 'dave@example.com', 'davepass321');
     `
 
+	// execute schema creation and data insertion
 	_, err = db.Exec(schema)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create schema or insert test data: %v", err)
@@ -39,6 +42,9 @@ func newTestDB() (*sqlx.DB, error) {
 	return db, nil
 }
 
+// newTestServer creates a new httptest.Server instance using the app's HTTP handler,
+// with middleware applied, and an in-memory test database. It returns the server,
+// the database connection, and any error encountered. Useful for end-to-end HTTP integration tests.
 func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 	// set up in-memory database
 	db, err := newTestDB()
@@ -57,7 +63,7 @@ func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 		app.RecoveryMiddleware(logger),
 	)
 
-	// Start a test server with your wrapped handler
+	// start a test server with wrapped handler
 	server := httptest.NewServer(wrappedHandler)
 	return server, db, nil
 }

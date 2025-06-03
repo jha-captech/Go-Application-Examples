@@ -26,10 +26,10 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		const funcName = "app.deleteUser"
 		logger = logger.With(
 			slog.String("func", funcName),
-			slog.Any("traceId", ctx.Value(traceIDKey{})),
+			getTraceIDAsAtter(ctx),
 		)
 
-		// Read id from path parameters
+		// read id from path parameters
 		idStr := r.PathValue("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -39,7 +39,7 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{ // ignore the error here because it should never happen with a defined struct
+			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{ // ignore the error here because it should never happen with a defined struct
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
@@ -47,13 +47,13 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		// Delete user from db
+		// delete user from db
 		logger.DebugContext(ctx, "Deleting user", "id", id)
 
 		result, err := db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", id)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to delete user", slog.String("error", err.Error()))
-			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponse(w, http.StatusInternalServerError, newInternalServerError())
 			return
 		}
 
@@ -64,12 +64,12 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"failed to get rows affected",
 				slog.String("error", err.Error()),
 			)
-			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponse(w, http.StatusInternalServerError, newInternalServerError())
 			return
 		}
 
 		if rowsAffected == 0 {
-			_ = encodeResponse(w, http.StatusNotFound, ProblemDetail{
+			_ = encodeResponse(w, http.StatusNotFound, problemDetail{
 				Title:  "User Not Found",
 				Status: http.StatusNotFound,
 				Detail: fmt.Sprintf("User with ID %d not found", id),
@@ -77,7 +77,7 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		// Respond with no content
+		// respond with no content
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
