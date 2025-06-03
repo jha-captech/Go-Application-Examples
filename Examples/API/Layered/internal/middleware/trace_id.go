@@ -38,7 +38,7 @@ func TraceID(options ...TraceIDOption) Func {
 				traceID := ""
 
 				if opts.header != "" {
-					traceID = r.Header.Get("X-Trace-ID")
+					traceID = r.Header.Get("X-Trace-Id")
 				}
 
 				if traceID == "" {
