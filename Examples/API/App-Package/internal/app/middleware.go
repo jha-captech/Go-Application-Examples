@@ -43,47 +43,51 @@ func (w *wrappedWriter) writeHeader(statusCode int) {
 // LoggingMiddleware logs the HTTP request method, path, duration, and status code.
 func LoggingMiddleware(logger *slog.Logger) middlewareFunc {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
+		return http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				start := time.Now()
 
-			wrapped := &wrappedWriter{
-				ResponseWriter: w,
-				statusCode:     http.StatusOK,
-			}
+				wrapped := &wrappedWriter{
+					ResponseWriter: w,
+					statusCode:     http.StatusOK,
+				}
 
-			next.ServeHTTP(wrapped, r)
+				next.ServeHTTP(wrapped, r)
 
-			logger.InfoContext(
-				r.Context(),
-				"request completed",
-				slog.String("method", r.Method),
-				slog.String("path", r.URL.Path),
-				slog.String("duration", time.Since(start).String()),
-				slog.Int("status", wrapped.statusCode),
-			)
-		})
+				logger.InfoContext(
+					r.Context(),
+					"request completed",
+					slog.String("method", r.Method),
+					slog.String("path", r.URL.Path),
+					slog.String("duration", time.Since(start).String()),
+					slog.Int("status", wrapped.statusCode),
+				)
+			},
+		)
 	}
 }
 
 // RecoveryMiddleware recovers from panics in the handler chain, logs the error, and returns a 500 status code.
 func RecoveryMiddleware(logger *slog.Logger) middlewareFunc {
 	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			defer func() {
-				if rc := recover(); rc != nil {
+		return http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				defer func() {
+					if rc := recover(); rc != nil {
 
-					logger.InfoContext(
-						r.Context(),
-						"panic recovered",
-						slog.Any("error", rc),
-						slog.Int("status", 500),
-					)
+						logger.InfoContext(
+							r.Context(),
+							"panic recovered",
+							slog.Any("error", rc),
+							slog.Int("status", 500),
+						)
 
-					w.WriteHeader(500)
-				}
-			}()
-			next.ServeHTTP(w, r)
-		})
+						w.WriteHeader(500)
+					}
+				}()
+				next.ServeHTTP(w, r)
+			},
+		)
 	}
 }
 
@@ -154,8 +158,8 @@ func getTraceID(ctx context.Context) string {
 	return traceID
 }
 
-// getTraceIDAsAtter returns the trace ID as a slog.Attr for structured logging.
-func getTraceIDAsAtter(ctx context.Context) slog.Attr {
+// getTraceIDAsAttr returns the trace ID as a slog.Attr for structured logging.
+func getTraceIDAsAttr(ctx context.Context) slog.Attr {
 	traceID := getTraceID(ctx)
 	if traceID == "" {
 		return slog.Attr{}

@@ -19,15 +19,16 @@ func NewHandler(logger *slog.Logger, db *sqlx.DB) http.Handler {
 	return mux
 }
 
-// encodeResponse encodes the provided data as a JSON response and writes it to the ResponseWriter.
+// encodeResponseJSON encodes the provided data as a JSON response and writes it to the ResponseWriter.
 // It sets the Content-Type header to "application/json" and writes the specified HTTP status code.
 // Returns an error if encoding fails.
-func encodeResponse(w http.ResponseWriter, status int, data any) error {
+func encodeResponseJSON(w http.ResponseWriter, status int, data any) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		return fmt.Errorf("failed to encode response: %w", err)
 	}
+
 	return nil
 }

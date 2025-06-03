@@ -13,25 +13,22 @@ import (
 
 // @Summary		Update User
 // @Description	Update user fields by ID
-// @Tags			user
-// @Accept			json
+// @Tags		user
+// @Accept		json
 // @Produce		json
-// @Param			id		path	string	true	"User ID"
-// @Param			user	body	User	true	"User data"
+// @Param		id		path	string	true	"User ID"
+// @Param		user	body	User	true	"User data"
 // @Success		200		{object}	User
 // @Failure		400		{object}	string
 // @Failure		404		{object}	string
 // @Failure		500		{object}	string
-// @Router			/user/{id} [PUT]
+// @Router		/user/{id} [PUT]
 func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		const funcName = "app.updateUser"
-		logger = logger.With(
-			slog.String("func", funcName),
-			getTraceIDAsAtter(ctx),
-		)
+		logger = logger.With(slog.String("func", funcName), getTraceIDAsAttr(ctx))
 
 		// read id from path parameters
 		idStr := r.PathValue("id")
@@ -43,15 +40,17 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			_ = encodeResponse(
+			_ = encodeResponseJSON(
 				w,
 				http.StatusBadRequest,
-				problemDetail{ // ignore the error here because it should never happen with a defined struct
+				problemDetail{
+					// ignore the error here because it should never happen with a defined struct
 					Title:  "Invalid ID",
 					Status: http.StatusBadRequest,
 					Detail: "The provided ID is not a valid integer.",
 				},
 			)
+
 			return
 		}
 
@@ -61,60 +60,82 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			logger.ErrorContext(
 				ctx,
 				"failed to decode request",
-				slog.String("error", err.Error()))
+				slog.String("error", err.Error()),
+			)
 
-			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{
-				Title:  "Bad Request",
-				Status: 400,
-				Detail: "Invalid request body.",
-			})
+			_ = encodeResponseJSON(
+				w, http.StatusBadRequest, problemDetail{
+					Title:  "Bad Request",
+					Status: 400,
+					Detail: "Invalid request body.",
+				},
+			)
+
 			return
 		}
+
 		if len(problems) > 0 {
 			logger.ErrorContext(
 				ctx,
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
-			_ = encodeResponse(w, http.StatusBadRequest, newValidationBadRequest(problems))
+			_ = encodeResponseJSON(w, http.StatusBadRequest, newValidationBadRequest(problems))
+
 			return
 		}
 
-		logger.InfoContext(ctx, "Updating user",
+		logger.InfoContext(
+			ctx, "Updating user",
 			slog.Int("id", id),
 			slog.String("name", user.Name),
 			slog.String("email", user.Email),
 		)
 
 		// update user in db
-		query := `
+		err = db.GetContext(
+			ctx,
+			&user,
+			`
             UPDATE users
-            SET name = $1, email = $2, password = $3
-            WHERE id = $4
-            RETURNING id, name, email, password
-        `
-		err = db.GetContext(ctx, &user, query, user.Name, user.Email, user.Password, id)
+			SET name     = $1,
+				email    = $2,
+				password = $3
+			WHERE id = $4
+			RETURNING id, name, email, password
+        	`,
+			user.Name,
+			user.Email,
+			user.Password,
+			id,
+		)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				_ = encodeResponse(w, http.StatusNotFound, problemDetail{
-					Title:  "User Not Found",
-					Status: http.StatusNotFound,
-					Detail: fmt.Sprintf("User with ID %d not found", id),
-				})
+				_ = encodeResponseJSON(
+					w, http.StatusNotFound, problemDetail{
+						Title:  "User Not Found",
+						Status: http.StatusNotFound,
+						Detail: fmt.Sprintf("User with ID %d not found", id),
+					},
+				)
+
 				return
 			}
+
 			logger.ErrorContext(ctx, "failed to update user", slog.String("error", err.Error()))
-			_ = encodeResponse(w, http.StatusInternalServerError, newInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, newInternalServerError())
+
 			return
 		}
 
-		logger.InfoContext(ctx, "User updated successfully",
+		logger.InfoContext(
+			ctx, "User updated successfully",
 			slog.Uint64("id", uint64(user.ID)),
 			slog.String("name", user.Name),
 			slog.String("email", user.Email),
 		)
 
 		// respond with updated user
-		_ = encodeResponse(w, http.StatusOK, user)
+		_ = encodeResponseJSON(w, http.StatusOK, user)
 	}
 }

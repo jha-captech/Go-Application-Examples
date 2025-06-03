@@ -64,6 +64,8 @@ func run(ctx context.Context) error {
 
 	// Create the main HTTP handler and wrap it with middleware for tracing, logging, and recovery.
 	handler := app.NewHandler(logger, db)
+
+	// Wrap the handler with middleware for tracing, logging, and recovery.
 	wrappedHandler := app.WrapHandler(
 		handler,
 		app.TraceIDMiddleware(),
@@ -92,7 +94,7 @@ func run(ctx context.Context) error {
 				func() error {
 					// Attempt graceful shutdown of the HTTP server.
 					if err := httpServer.Shutdown(ctx); err != nil {
-						return fmt.Errorf("failed to shutdown server: %w", err)
+						return fmt.Errorf("[in main.run] failed to shutdown server: %w", err)
 					}
 					return nil
 				},
