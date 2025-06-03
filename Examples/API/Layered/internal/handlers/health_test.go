@@ -17,57 +17,69 @@ import (
 func TestHandleHealthCheck(t *testing.T) {
 	tests := map[string]struct {
 		name         string
-		mockStatus   services.DeepHealthStatus
+		mockStatus   []services.HealthStatus
 		mockErr      error
 		wantStatus   int
 		wantResponse healthResponse
 	}{
 		"healthy": {
-			mockStatus: services.DeepHealthStatus{
-				DB:    "ok",
-				Cache: "ok",
+			mockStatus: []services.HealthStatus{
+				{Name: "db", Status: "up"},
+				{Name: "cache", Status: "up"},
 			},
 			mockErr:    nil,
 			wantStatus: http.StatusOK,
 			wantResponse: healthResponse{
-				Status: "ok",
-				Checks: services.DeepHealthStatus{DB: "ok", Cache: "ok"},
+				Status: "up",
+				HealthDetails: []services.HealthStatus{
+					{Name: "db", Status: "up"},
+					{Name: "cache", Status: "up"},
+				},
 			},
 		},
 		"db unhealthy": {
-			mockStatus: services.DeepHealthStatus{
-				DB:    "unhealthy",
-				Cache: "ok",
+			mockStatus: []services.HealthStatus{
+				{Name: "db", Status: "unhealthy"},
+				{Name: "cache", Status: "up"},
 			},
 			mockErr:    errors.New("db down"),
 			wantStatus: http.StatusInternalServerError,
 			wantResponse: healthResponse{
 				Status: "unhealthy",
-				Checks: services.DeepHealthStatus{DB: "unhealthy", Cache: "ok"},
+				HealthDetails: []services.HealthStatus{
+					{Name: "db", Status: "unhealthy"},
+					{Name: "cache", Status: "up"},
+				},
 			},
 		},
 		"cache unhealthy": {
-			mockStatus: services.DeepHealthStatus{
-				DB:    "ok",
-				Cache: "unhealthy",
+			mockStatus: []services.HealthStatus{
+				{Name: "db", Status: "up"},
+				{Name: "cache", Status: "unhealthy"},
 			},
 			mockErr:    errors.New("cache down"),
 			wantStatus: http.StatusInternalServerError,
 			wantResponse: healthResponse{
 				Status: "unhealthy",
-				Checks: services.DeepHealthStatus{DB: "ok", Cache: "unhealthy"},
+				HealthDetails: []services.HealthStatus{
+					{Name: "db", Status: "up"},
+					{Name: "cache", Status: "unhealthy"},
+				},
 			},
 		},
 		"both unhealthy": {
-			mockStatus: services.DeepHealthStatus{
-				DB:    "unhealthy",
-				Cache: "unhealthy",
+			mockStatus: []services.HealthStatus{
+				{Name: "db", Status: "unhealthy"},
+				{Name: "cache", Status: "unhealthy"},
 			},
 			mockErr:    errors.New("db and cache down"),
 			wantStatus: http.StatusInternalServerError,
 			wantResponse: healthResponse{
 				Status: "unhealthy",
-				Checks: services.DeepHealthStatus{DB: "unhealthy", Cache: "unhealthy"},
+				HealthDetails: []services.HealthStatus{
+					{Name: "db", Status: "unhealthy"},
+					{Name: "cache", Status: "unhealthy"},
+				},
 			},
 		},
 	}
@@ -84,7 +96,7 @@ func TestHandleHealthCheck(t *testing.T) {
 				logger := slog.Default()
 
 				mockedUserHealth := &moqhealthChecker{
-					DeepHealthCheckFunc: func(ctx context.Context) (services.DeepHealthStatus, error) {
+					DeepHealthCheckFunc: func(ctx context.Context) ([]services.HealthStatus, error) {
 						return tc.mockStatus, tc.mockErr
 					},
 				}

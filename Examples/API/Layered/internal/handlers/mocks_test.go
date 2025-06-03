@@ -166,7 +166,7 @@ var _ healthChecker = &moqhealthChecker{}
 //
 //		// make and configure a mocked healthChecker
 //		mockedhealthChecker := &moqhealthChecker{
-//			DeepHealthCheckFunc: func(ctx context.Context) (services.DeepHealthStatus, error) {
+//			DeepHealthCheckFunc: func(ctx context.Context) ([]services.HealthStatus, error) {
 //				panic("mock out the DeepHealthCheck method")
 //			},
 //		}
@@ -177,7 +177,7 @@ var _ healthChecker = &moqhealthChecker{}
 //	}
 type moqhealthChecker struct {
 	// DeepHealthCheckFunc mocks the DeepHealthCheck method.
-	DeepHealthCheckFunc func(ctx context.Context) (services.DeepHealthStatus, error)
+	DeepHealthCheckFunc func(ctx context.Context) ([]services.HealthStatus, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -191,7 +191,7 @@ type moqhealthChecker struct {
 }
 
 // DeepHealthCheck calls DeepHealthCheckFunc.
-func (mock *moqhealthChecker) DeepHealthCheck(ctx context.Context) (services.DeepHealthStatus, error) {
+func (mock *moqhealthChecker) DeepHealthCheck(ctx context.Context) ([]services.HealthStatus, error) {
 	if mock.DeepHealthCheckFunc == nil {
 		panic("moqhealthChecker.DeepHealthCheckFunc: method is nil but healthChecker.DeepHealthCheck was just called")
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestencodeResponseJSON(t *testing.T) {
+func TestEncodeResponseJSON(t *testing.T) {
 	t.Parallel()
 
 	type fields struct {

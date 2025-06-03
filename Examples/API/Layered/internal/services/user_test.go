@@ -25,31 +25,43 @@ func TestUsersService_DeepHealthCheck(t *testing.T) {
 	}
 	tests := map[string]struct {
 		fields      fields
-		wantStatus  DeepHealthStatus
+		wantStatus  []HealthStatus
 		wantErr     bool
 		errContains string
 	}{
 		"healthy": {
-			fields:      fields{dbErr: nil, cacheErr: nil},
-			wantStatus:  DeepHealthStatus{DB: "ok", Cache: "ok"},
+			fields: fields{dbErr: nil, cacheErr: nil},
+			wantStatus: []HealthStatus{
+				{Name: "db", Status: "up"},
+				{Name: "cache", Status: "up"},
+			},
 			wantErr:     false,
 			errContains: "",
 		},
 		"db ping error": {
-			fields:      fields{dbErr: errors.New("db down"), cacheErr: nil},
-			wantStatus:  DeepHealthStatus{DB: "unhealthy", Cache: "ok"},
+			fields: fields{dbErr: errors.New("db down"), cacheErr: nil},
+			wantStatus: []HealthStatus{
+				{Name: "db", Status: "unhealthy"},
+				{Name: "cache", Status: "up"},
+			},
 			wantErr:     true,
 			errContains: "failed to ping database",
 		},
 		"cache ping error": {
-			fields:      fields{dbErr: nil, cacheErr: errors.New("cache down")},
-			wantStatus:  DeepHealthStatus{DB: "ok", Cache: "unhealthy"},
+			fields: fields{dbErr: nil, cacheErr: errors.New("cache down")},
+			wantStatus: []HealthStatus{
+				{Name: "db", Status: "up"},
+				{Name: "cache", Status: "unhealthy"},
+			},
 			wantErr:     true,
 			errContains: "failed to ping cache",
 		},
 		"both ping error": {
-			fields:      fields{dbErr: errors.New("db down"), cacheErr: errors.New("cache down")},
-			wantStatus:  DeepHealthStatus{DB: "unhealthy", Cache: "unhealthy"},
+			fields: fields{dbErr: errors.New("db down"), cacheErr: errors.New("cache down")},
+			wantStatus: []HealthStatus{
+				{Name: "db", Status: "unhealthy"},
+				{Name: "cache", Status: "unhealthy"},
+			},
 			wantErr:     true,
 			errContains: "failed to ping database",
 		},

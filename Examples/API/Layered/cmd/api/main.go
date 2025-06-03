@@ -102,7 +102,12 @@ func run(ctx context.Context) error {
 	)
 
 	// Create a new users service
-	usersService := services.NewUsersService(logger, db, rdb, time.Duration(cfg.CacheExpiration)*time.Second)
+	usersService := services.NewUsersService(
+		logger,
+		db,
+		rdb,
+		time.Duration(cfg.CacheExpiration)*time.Second,
+	)
 
 	// Create a serve mux to act as our route multiplexer
 	mux := telemetry.InstrumentServeMux(http.NewServeMux())

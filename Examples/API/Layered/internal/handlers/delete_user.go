@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"example.com/examples/api/layered/internal/middleware"
 	"go.opentelemetry.io/otel/codes"
+
+	"example.com/examples/api/layered/internal/middleware"
 )
 
 // uerDeleter represents a type capable of deleting a user from storage

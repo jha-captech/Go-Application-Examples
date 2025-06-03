@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"example.com/examples/api/layered/internal/middleware"
 	"github.com/go-playground/validator/v10"
 	"go.opentelemetry.io/otel"
+
+	"example.com/examples/api/layered/internal/middleware"
 )
 
 const name = "example.com/examples/api/layered/internal/handlers"
@@ -96,7 +97,10 @@ func validate[T any](data *T, options ...validator.Option) ([]validator.FieldErr
 }
 
 // NewValidationBadRequest creates a ProblemDetailValidation instance for a 400 Bad Request validation error.
-func NewValidationBadRequest(ctx context.Context, invalidParams []validationProblem) ProblemDetailValidation {
+func NewValidationBadRequest(
+	ctx context.Context,
+	invalidParams []validationProblem,
+) ProblemDetailValidation {
 	return ProblemDetailValidation{
 		ProblemDetail: ProblemDetail{
 			Title:   "Bad Request",

@@ -37,34 +37,36 @@ func NewUsersService(
 	}
 }
 
-// DeepHealthStatus represents the status of each dependency.
-type DeepHealthStatus struct {
-	DB    string `json:"db"`
-	Cache string `json:"cache"`
+// HealthStatus represents the status of each dependency.
+type HealthStatus struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
 }
 
 // DeepHealthCheck checks the health of the DB and cache, returning their statuses and an error if any are unhealthy.
-func (s *UsersService) DeepHealthCheck(ctx context.Context) (DeepHealthStatus, error) {
+func (s *UsersService) DeepHealthCheck(ctx context.Context) ([]HealthStatus, error) {
 	logger := s.logger.With(slog.String("func", "services.UsersService.DeepHealthCheck"))
 	logger.DebugContext(ctx, "Performing deep health check")
 
-	status := DeepHealthStatus{DB: "ok", Cache: "ok"}
+	var deps []HealthStatus
 	var err error
 
-	// Check the database connection
+	// DB check
+	dbStatus := HealthStatus{Name: "db", Status: "up"}
 	if dbErr := s.db.PingContext(ctx); dbErr != nil {
-		status.DB = "unhealthy"
+		dbStatus.Status = "unhealthy"
 		err = fmt.Errorf(
 			"[in services.UsersService.DeepHealthCheck] failed to ping database: %w",
 			dbErr,
 		)
 	}
+	deps = append(deps, dbStatus)
 
-	// Check the cache connection
+	// Cache check
+	cacheStatus := HealthStatus{Name: "cache", Status: "up"}
 	if cacheErr := s.cache.Client.Ping(ctx).Err(); cacheErr != nil {
-		status.Cache = "unhealthy"
+		cacheStatus.Status = "unhealthy"
 		if err != nil {
-			// Both failed, combine errors
 			err = fmt.Errorf(
 				"%v; [in services.UsersService.DeepHealthCheck] failed to ping cache: %w",
 				err,
@@ -74,8 +76,9 @@ func (s *UsersService) DeepHealthCheck(ctx context.Context) (DeepHealthStatus, e
 			err = fmt.Errorf("[in services.UsersService.DeepHealthCheck] failed to ping cache: %w", cacheErr)
 		}
 	}
+	deps = append(deps, cacheStatus)
 
-	return status, err
+	return deps, err
 }
 
 // CreateUser attempts to create the provided user, returning a fully hydrated

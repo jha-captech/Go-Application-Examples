@@ -13,13 +13,13 @@ import (
 // userCreator represents a type capable of reading a user from storage and
 // returning it or an error.
 type healthChecker interface {
-	DeepHealthCheck(ctx context.Context) (services.DeepHealthStatus, error)
+	DeepHealthCheck(ctx context.Context) ([]services.HealthStatus, error)
 }
 
 // healthResponse represents the response for the health check.
 type healthResponse struct {
-	Status string                    `json:"status"`
-	Checks services.DeepHealthStatus `json:"checks"`
+	Status        string                  `json:"status"`
+	HealthDetails []services.HealthStatus `json:"details"`
 }
 
 // HandleHealthCheck handles the deep health check endpoint.
@@ -37,16 +37,22 @@ func HandleHealthCheck(logger *slog.Logger, userHealth healthChecker) http.Handl
 	logger = logger.With(slog.String("func", name))
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		const upStatus = "up"
 		ctx, span := tracer.Start(r.Context(), name)
 		defer span.End()
 		logger.InfoContext(ctx, "health check called")
 
 		checks, err := userHealth.DeepHealthCheck(ctx)
-		status := "ok"
+		status := upStatus
 		code := http.StatusOK
+		for _, check := range checks {
+			if check.Status != upStatus {
+				status = "unhealthy"
+				code = http.StatusInternalServerError
+				break
+			}
+		}
 		if err != nil {
-			status = "unhealthy"
-			code = http.StatusInternalServerError
 			logger.ErrorContext(ctx, "health check failed", slog.String("error", err.Error()))
 			span.SetStatus(codes.Error, "health check failed")
 			span.RecordError(err)
@@ -54,8 +60,8 @@ func HandleHealthCheck(logger *slog.Logger, userHealth healthChecker) http.Handl
 
 		_ = encodeResponseJSON(
 			w, code, healthResponse{
-				Status: status,
-				Checks: checks,
+				Status:        status,
+				HealthDetails: checks,
 			},
 		)
 	}
