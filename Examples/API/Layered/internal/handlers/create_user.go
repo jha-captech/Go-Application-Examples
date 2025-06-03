@@ -51,11 +51,13 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponseJSON(w, http.StatusInternalServerError, ProblemDetail{
-				Title:  "Bad Request",
-				Status: 400,
-				Detail: "Invalid request body.",
-			})
+			_ = encodeResponseJSON(
+				w, http.StatusInternalServerError, ProblemDetail{
+					Title:  "Bad Request",
+					Status: 400,
+					Detail: "Invalid request body.",
+				},
+			)
 
 			return
 		}
@@ -64,6 +66,7 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 			logger.ErrorContext(
 				ctx,
 				validationError,
+				slog.Any("problems", problems),
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
 			span.SetStatus(codes.Error, validationError)
@@ -97,10 +100,12 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 		}
 
 		// Convert our models.User domain model into a response model.
-		_ = encodeResponseJSON(w, http.StatusCreated, UserResponse{
-			ID:    user.ID,
-			Name:  user.Name,
-			Email: user.Email,
-		})
+		_ = encodeResponseJSON(
+			w, http.StatusCreated, UserResponse{
+				ID:    user.ID,
+				Name:  user.Name,
+				Email: user.Email,
+			},
+		)
 	}
 }

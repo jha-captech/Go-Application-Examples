@@ -65,6 +65,6 @@ func (m *InstrumentedServeMux) InstrumentRootHandler(
 
 				m.ServeMux.ServeHTTP(w, r.WithContext(ctx))
 			},
-		), "my-service", opts...,
+		), "service", opts...,
 	)
 }

@@ -8,15 +8,17 @@ import (
 	"example.com/examples/api/layered/internal/telemetry"
 )
 
+// AddRoutes registers the API routes with the provided ServeMux.
+//
 // @title						Blog Service API
-// @version					1.0
-// @description				Practice Go API using the Standard Library and Postgres
+// @version						1.0
+// @description					Practice Go API using the Standard Library and Postgres
 // @termsOfService				http://swagger.io/terms/
 // @contact.name				API Support
-// @contact.url				http://www.swagger.io/support
+// @contact.url					http://www.swagger.io/support
 // @contact.email				support@swagger.io
 // @license.name				Apache 2.0
-// @license.url				http://www.apache.org/licenses/LICENSE-2.0.html
+// @license.url					http://www.apache.org/licenses/LICENSE-2.0.html
 // @host						localhost:8000
 // @BasePath					/api
 // @externalDocs.description	OpenAPI

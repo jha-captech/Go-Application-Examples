@@ -92,11 +92,13 @@ func run(ctx context.Context) error {
 
 	logger.InfoContext(ctx, "Connected successfully to the database")
 
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%d", cfg.CacheHost, cfg.CachePort),
-		Password: cfg.CachePassword,
-		DB:       cfg.CacheDB,
-	})
+	rdb := redis.NewClient(
+		&redis.Options{
+			Addr:     fmt.Sprintf("%s:%d", cfg.CacheHost, cfg.CachePort),
+			Password: cfg.CachePassword,
+			DB:       cfg.CacheDB,
+		},
+	)
 
 	// Create a new users service
 	usersService := services.NewUsersService(logger, db, rdb, 0)

@@ -61,8 +61,6 @@ func SetupOTelSDK(ctx context.Context, cfg Config) (
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
 
-	// ...existing code for meter and logger providers...
-
 	return
 }
 

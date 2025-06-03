@@ -24,14 +24,14 @@ type healthResponse struct {
 
 // HandleHealthCheck handles the deep health check endpoint.
 //
-//		@Summary		Health Check
-//		@Description	Health Check endpoint
-//		@Tags			health
-//		@Accept			json
-//		@Produce		json
-//		@Success		200		{object}	healthResponse
-//	 	@Failure		500		{object}	healthResponse
-//		@Router			/health	[GET]
+//	@Summary		Health Check
+//	@Description	Health Check endpoint
+//	@Tags			health
+//	@Accept			json
+//	@Produce		json
+//	@Success		200		{object}	healthResponse
+//	@Failure		500		{object}	healthResponse
+//	@Router			/health	[GET]
 func HandleHealthCheck(logger *slog.Logger, userHealth healthChecker) http.HandlerFunc {
 	const name = "handlers.HandleHealthCheck"
 	logger = logger.With(slog.String("func", name))
@@ -52,9 +52,11 @@ func HandleHealthCheck(logger *slog.Logger, userHealth healthChecker) http.Handl
 			span.RecordError(err)
 		}
 
-		_ = encodeResponseJSON(w, code, healthResponse{
-			Status: status,
-			Checks: checks,
-		})
+		_ = encodeResponseJSON(
+			w, code, healthResponse{
+				Status: status,
+				Checks: checks,
+			},
+		)
 	}
 }

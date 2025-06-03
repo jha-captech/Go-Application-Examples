@@ -50,11 +50,13 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponseJSON(w, http.StatusBadRequest, ProblemDetail{
-				Title:  "Invalid ID",
-				Status: http.StatusBadRequest,
-				Detail: "The provided ID is not a valid integer.",
-			})
+			_ = encodeResponseJSON(
+				w, http.StatusBadRequest, ProblemDetail{
+					Title:  "Invalid ID",
+					Status: http.StatusBadRequest,
+					Detail: "The provided ID is not a valid integer.",
+				},
+			)
 
 			return
 		}
@@ -74,6 +76,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 
 			return
 		}
+
 		// Encode the response model as JSON
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
