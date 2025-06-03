@@ -53,7 +53,7 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
@@ -73,6 +73,6 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 		}
 
 		// Encode the response model as JSON
-		_ = encodeResponse(w, http.StatusOK, response)
+		_ = encodeResponseJSON(w, http.StatusOK, response)
 	}
 }

@@ -83,7 +83,7 @@ func NewValidationBadRequest(invalidParams []validationProblem) ProblemDetailVal
 	return ProblemDetailValidation{
 		ProblemDetail: ProblemDetail{
 			Title:  "Bad Request",
-			Status: 400,
+			Status: http.StatusBadRequest,
 			Detail: "The request contains invalid parameters.",
 		},
 		InvalidParams: invalidParams,
@@ -93,7 +93,7 @@ func NewValidationBadRequest(invalidParams []validationProblem) ProblemDetailVal
 func NewInternalServerError() ProblemDetail {
 	return ProblemDetail{
 		Title:  "Internal Server Error",
-		Status: 500,
+		Status: http.StatusInternalServerError,
 		Detail: "An unexpected error occurred.",
 	}
 }

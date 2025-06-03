@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEncodeResponse(t *testing.T) {
+func TestencodeResponseJSON(t *testing.T) {
 	t.Parallel()
 
 	type fields struct {
@@ -97,7 +97,7 @@ func TestEncodeResponse(t *testing.T) {
 			t.Parallel()
 			rec := httptest.NewRecorder()
 
-			encodeResponse(rec, tc.fields.status, tc.fields.data)
+			encodeResponseJSON(rec, tc.fields.status, tc.fields.data)
 
 			res := rec.Result()
 			defer res.Body.Close()

@@ -54,7 +54,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponseJSON(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
@@ -73,7 +73,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
@@ -87,7 +87,7 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 			span.SetStatus(codes.Error, validationError)
 			span.RecordError(errors.New(validationError))
 
-			_ = encodeResponse(w, http.StatusBadRequest, NewValidationBadRequest(problems))
+			_ = encodeResponseJSON(w, http.StatusBadRequest, NewValidationBadRequest(problems))
 
 			return
 		}
@@ -109,13 +109,13 @@ func HandleUpdateUser(logger *slog.Logger, userUpdater userUpdater) http.Handler
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
 
 		// Encode the response model as JSON
-		_ = encodeResponse(w, http.StatusOK, UserResponse{
+		_ = encodeResponseJSON(w, http.StatusOK, UserResponse{
 			ID:    user.ID,
 			Name:  user.Name,
 			Email: user.Email,

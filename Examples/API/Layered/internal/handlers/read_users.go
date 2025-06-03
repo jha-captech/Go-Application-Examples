@@ -51,7 +51,7 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponseJSON(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
@@ -71,13 +71,13 @@ func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
 
 		// Encode the response model as JSON
-		_ = encodeResponse(w, http.StatusOK, UserResponse{
+		_ = encodeResponseJSON(w, http.StatusOK, UserResponse{
 			ID:    user.ID,
 			Name:  user.Name,
 			Email: user.Email,

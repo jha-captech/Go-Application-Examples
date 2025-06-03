@@ -133,7 +133,7 @@ func run(ctx context.Context) error {
 			eg.Go(
 				func() error {
 					if err := srv.Shutdown(ctx); err != nil {
-						return fmt.Errorf("failed to shutdown server: %w", err)
+						return fmt.Errorf("[in main.run] failed to shutdown server: %w", err)
 					}
 
 					if err := otelShutdownFunc(ctx); err != nil {
@@ -159,7 +159,7 @@ func run(ctx context.Context) error {
 	}
 
 	if err = eg.Wait(); err != nil {
-		return fmt.Errorf("error waiting for server to shut down: %w", err)
+		return fmt.Errorf("[in main.run] error waiting for server to shut down: %w", err)
 	}
 
 	return nil

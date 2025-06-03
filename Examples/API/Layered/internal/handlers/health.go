@@ -52,7 +52,7 @@ func HandleHealthCheck(logger *slog.Logger, userHealth healthChecker) http.Handl
 			span.RecordError(err)
 		}
 
-		_ = encodeResponse(w, code, healthResponse{
+		_ = encodeResponseJSON(w, code, healthResponse{
 			Status: status,
 			Checks: checks,
 		})

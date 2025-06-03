@@ -48,7 +48,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponse(w, http.StatusBadRequest, ProblemDetail{
+			_ = encodeResponseJSON(w, http.StatusBadRequest, ProblemDetail{
 				Title:  "Invalid ID",
 				Status: http.StatusBadRequest,
 				Detail: "The provided ID is not a valid integer.",
@@ -68,7 +68,7 @@ func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.Handler
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 
-			_ = encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, NewInternalServerError())
 
 			return
 		}
