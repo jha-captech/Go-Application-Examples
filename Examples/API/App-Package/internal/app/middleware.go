@@ -83,7 +83,6 @@ func RecoveryMiddleware(logger *slog.Logger) middlewareFunc {
 				}
 			}()
 			next.ServeHTTP(w, r)
-
 		})
 	}
 }

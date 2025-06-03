@@ -17,7 +17,7 @@ import (
 func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		const funcName = "app.listUsers"
 		logger = logger.With(
 			slog.String("func", funcName),
@@ -36,10 +36,13 @@ func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
             FROM users
             `,
 		)
-
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query users", slog.String("error", err.Error()))
-			_ = encodeResponse(w, http.StatusInternalServerError, newInternalServerError()) // ignore the error here because it should never happen with a defined struct
+			_ = encodeResponse(
+				w,
+				http.StatusInternalServerError,
+				newInternalServerError(),
+			) // ignore the error here because it should never happen with a defined struct
 			return
 		}
 

@@ -172,7 +172,11 @@ func TestCreateUser(t *testing.T) {
 		Email    string `db:"email"`
 		Password string `db:"password"`
 	}
-	err = db.Get(&dbUser, "SELECT id, name, email, password FROM users WHERE email = ?", newUser.Email)
+	err = db.Get(
+		&dbUser,
+		"SELECT id, name, email, password FROM users WHERE email = ?",
+		newUser.Email,
+	)
 	if err != nil {
 		t.Fatalf("Failed to query user from DB: %v", err)
 	}

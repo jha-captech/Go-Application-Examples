@@ -21,7 +21,7 @@ import (
 func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		const funcName = "app.createUser"
 		logger = logger.With(
 			slog.String("func", funcName),
@@ -36,11 +36,15 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"failed to decode request",
 				slog.String("error", err.Error()))
 
-			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{ // ignore the error here because it should never happen with a defined struct
-				Title:  "Bad Request",
-				Status: 400,
-				Detail: "Invalid request body.",
-			})
+			_ = encodeResponse(
+				w,
+				http.StatusBadRequest,
+				problemDetail{ // ignore the error here because it should never happen with a defined struct
+					Title:  "Bad Request",
+					Status: 400,
+					Detail: "Invalid request body.",
+				},
+			)
 
 			return
 		}

@@ -25,7 +25,7 @@ import (
 func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		const funcName = "app.readUser"
 		logger = logger.With(
 			slog.String("func", funcName),
@@ -42,11 +42,15 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{ // ignore the error here because it should never happen with a defined struct
-				Title:  "Bad Request",
-				Status: http.StatusBadRequest,
-				Detail: "The provided ID is not a valid integer.",
-			})
+			_ = encodeResponse(
+				w,
+				http.StatusBadRequest,
+				problemDetail{ // ignore the error here because it should never happen with a defined struct
+					Title:  "Bad Request",
+					Status: http.StatusBadRequest,
+					Detail: "The provided ID is not a valid integer.",
+				},
+			)
 			return
 		}
 
@@ -67,7 +71,6 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			`,
 			id,
 		)
-
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):

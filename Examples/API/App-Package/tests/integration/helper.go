@@ -5,9 +5,11 @@ import (
 	"log/slog"
 	"net/http/httptest"
 
-	"example.com/examples/api/app-package/internal/app"
 	"github.com/jmoiron/sqlx"
+
 	_ "github.com/mattn/go-sqlite3"
+
+	"example.com/examples/api/app-package/internal/app"
 )
 
 // newTestDB creates and returns an in-memory SQLite database

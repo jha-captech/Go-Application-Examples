@@ -21,7 +21,7 @@ import (
 func main() {
 	// Run the main application logic and handle any errors.
 	if err := run(context.Background()); err != nil {
-		fmt.Fprintf(os.Stderr, "run failed: %s", err.Error())
+		_, _ = fmt.Fprintf(os.Stderr, "run failed: %s", err.Error())
 		os.Exit(1)
 	}
 }
@@ -34,20 +34,26 @@ func run(ctx context.Context) error {
 	}
 
 	// Create a structured logger that outputs JSON logs to stdout.
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: cfg.LogLevel,
-	}))
+	logger := slog.New(
+		slog.NewJSONHandler(
+			os.Stdout, &slog.HandlerOptions{
+				Level: cfg.LogLevel,
+			},
+		),
+	)
 
 	// Connect to the PostgreSQL database using the provided config.
 	logger.DebugContext(ctx, "Connecting to and pinging the database")
-	db, err := sqlx.Connect("pgx", fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		cfg.DBHost,
-		cfg.DBUserName,
-		cfg.DBUserPassword,
-		cfg.DBName,
-		cfg.DBPort,
-	))
+	db, err := sqlx.Connect(
+		"pgx", fmt.Sprintf(
+			"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+			cfg.DBHost,
+			cfg.DBUserName,
+			cfg.DBUserPassword,
+			cfg.DBName,
+			cfg.DBPort,
+		),
+	)
 	// Ensure the database connection is closed on exit.
 	defer func() {
 		logger.DebugContext(ctx, "Closing database connection")

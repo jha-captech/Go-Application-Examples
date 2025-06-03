@@ -22,7 +22,7 @@ import (
 func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		
+
 		const funcName = "app.deleteUser"
 		logger = logger.With(
 			slog.String("func", funcName),
@@ -39,11 +39,15 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			_ = encodeResponse(w, http.StatusBadRequest, problemDetail{ // ignore the error here because it should never happen with a defined struct
-				Title:  "Invalid ID",
-				Status: http.StatusBadRequest,
-				Detail: "The provided ID is not a valid integer.",
-			})
+			_ = encodeResponse(
+				w,
+				http.StatusBadRequest,
+				problemDetail{ // ignore the error here because it should never happen with a defined struct
+					Title:  "Invalid ID",
+					Status: http.StatusBadRequest,
+					Detail: "The provided ID is not a valid integer.",
+				},
+			)
 			return
 		}
 
