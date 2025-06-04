@@ -11,30 +11,41 @@ import (
 )
 
 // TestReadUser verifies that the API correctly returns user details for each user ID.
-// It checks that the returned user data matches the expected name, email, and password for each user.
-func TestReadUser(t *testing.T) {
+// It checks that the returned user data matches the expected name and email for each user.
+func TestReadUser(t *testing.T) { //nolint: tparallel
 	t.Parallel()
+
 	tests := []struct {
-		id       int
-		name     string
-		email    string
-		password string
+		id    int
+		name  string
+		email string
 	}{
-		{1, "Alice", "alice@example.com", "password123"},
-		{2, "Bob", "bob@example.com", "securepass456"},
-		{3, "Carol", "carol@example.com", "carolpass789"},
-		{4, "Dave", "dave@example.com", "davepass321"},
+		{1, "Alice", "alice@example.com"},
+		{2, "Bob", "bob@example.com"},
+		{3, "Carol", "carol@example.com"},
+		{4, "Dave", "dave@example.com"},
 	}
 
 	server, _, err := newTestServer()
 	if err != nil {
 		t.Fatalf("Failed to create test server: %v", err)
 	}
+
 	t.Cleanup(server.Close)
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			resp, err := http.Get(server.URL + "/api/user/" + strconv.Itoa(tc.id))
+			req, err := http.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				server.URL+"/api/user/"+strconv.Itoa(tc.id),
+				nil,
+			)
+			if err != nil {
+				t.Fatalf("Failed to create GET request: %v", err)
+			}
+
+			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to make GET request: %v", err)
 			}
@@ -43,11 +54,11 @@ func TestReadUser(t *testing.T) {
 			assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200 OK")
 
 			var user struct {
-				ID       int    `json:"id"`
-				Name     string `json:"name"`
-				Email    string `json:"email"`
-				Password string `json:"password"`
+				ID    int    `json:"id"`
+				Name  string `json:"name"`
+				Email string `json:"email"`
 			}
+
 			if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
 				t.Fatalf("Failed to decode response: %v", err)
 			}
@@ -55,7 +66,6 @@ func TestReadUser(t *testing.T) {
 			assert.Equal(t, tc.id, user.ID, "User ID mismatch")
 			assert.Equal(t, tc.name, user.Name, "User name mismatch")
 			assert.Equal(t, tc.email, user.Email, "User email mismatch")
-			assert.Equal(t, tc.password, user.Password, "User password mismatch")
 		})
 	}
 }
@@ -66,24 +76,34 @@ func TestListUsers(t *testing.T) {
 	t.Parallel()
 
 	expected := []struct {
-		ID       int
-		Name     string
-		Email    string
-		Password string
+		ID    int
+		Name  string
+		Email string
 	}{
-		{1, "Alice", "alice@example.com", "password123"},
-		{2, "Bob", "bob@example.com", "securepass456"},
-		{3, "Carol", "carol@example.com", "carolpass789"},
-		{4, "Dave", "dave@example.com", "davepass321"},
+		{1, "Alice", "alice@example.com"},
+		{2, "Bob", "bob@example.com"},
+		{3, "Carol", "carol@example.com"},
+		{4, "Dave", "dave@example.com"},
 	}
 
 	server, _, err := newTestServer()
 	if err != nil {
 		t.Fatalf("Failed to create test server: %v", err)
 	}
+
 	t.Cleanup(server.Close)
 
-	resp, err := http.Get(server.URL + "/api/users")
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodGet,
+		server.URL+"/api/user",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Failed to create GET request: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("Failed to make GET request: %v", err)
 	}
@@ -92,23 +112,22 @@ func TestListUsers(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200 OK")
 
 	var users []struct {
-		ID       int    `json:"id"`
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		ID    int    `json:"id"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
 	}
+
 	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	assert.Equal(t, len(expected), len(users), "Expected number of users does not match")
+	assert.Len(t, users, len(expected), "Expected number of users does not match")
 
 	for i, exp := range expected {
 		got := users[i]
 		assert.Equal(t, exp.ID, got.ID, "User ID mismatch at index %d", i)
 		assert.Equal(t, exp.Name, got.Name, "User name mismatch at index %d", i)
 		assert.Equal(t, exp.Email, got.Email, "User email mismatch at index %d", i)
-		assert.Equal(t, exp.Password, got.Password, "User password mismatch at index %d", i)
 	}
 }
 
@@ -121,6 +140,7 @@ func TestCreateUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test server: %v", err)
 	}
+
 	t.Cleanup(server.Close)
 
 	newUser := struct {
@@ -133,45 +153,51 @@ func TestCreateUser(t *testing.T) {
 		Password: "evepass999",
 	}
 
-	// Marshal new user to JSON
 	body, err := json.Marshal(newUser)
 	if err != nil {
 		t.Fatalf("Failed to marshal user: %v", err)
 	}
 
-	resp, err := http.Post(server.URL+"/api/user", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL+"/api/user",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create POST request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("Failed to make POST request: %v", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("Expected status 201 Created, got %d", resp.StatusCode)
-	}
-
-	assert.Equal(t, resp.StatusCode, http.StatusCreated, "Expected status code 201 Created")
+	assert.Equal(t, http.StatusCreated, resp.StatusCode, "Expected status code 201 Created")
 
 	var createdUser struct {
-		ID       int    `json:"id"`
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		ID    int    `json:"id"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
 	}
+
 	if err := json.NewDecoder(resp.Body).Decode(&createdUser); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
 	assert.Equal(t, newUser.Name, createdUser.Name, "Created user name mismatch")
 	assert.Equal(t, newUser.Email, createdUser.Email, "Created user email mismatch")
-	assert.Equal(t, newUser.Password, createdUser.Password, "Created user password mismatch")
 
-	// verify the new user was inserted into the database
 	var dbUser struct {
 		ID       int    `db:"id"`
 		Name     string `db:"name"`
 		Email    string `db:"email"`
 		Password string `db:"password"`
 	}
+
 	err = db.Get(
 		&dbUser,
 		"SELECT id, name, email, password FROM users WHERE email = ?",
@@ -180,6 +206,7 @@ func TestCreateUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to query user from DB: %v", err)
 	}
+
 	assert.Equal(t, newUser.Name, dbUser.Name, "DB user name mismatch")
 	assert.Equal(t, newUser.Email, dbUser.Email, "DB user email mismatch")
 	assert.Equal(t, newUser.Password, dbUser.Password, "DB user password mismatch")
@@ -195,8 +222,10 @@ func TestUpdateUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test server: %v", err)
 	}
+
 	t.Cleanup(server.Close)
 
+	// Use userRequest model for request body
 	updatedUser := struct {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
@@ -207,16 +236,21 @@ func TestUpdateUser(t *testing.T) {
 		Password: "newpassword123",
 	}
 
-	// Marshal updated user to JSON
 	body, err := json.Marshal(updatedUser)
 	if err != nil {
 		t.Fatalf("Failed to marshal user: %v", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPut, server.URL+"/api/user/1", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPut,
+		server.URL+"/api/user/1",
+		bytes.NewReader(body),
+	)
 	if err != nil {
 		t.Fatalf("Failed to create PUT request: %v", err)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -225,21 +259,21 @@ func TestUpdateUser(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	assert.Equal(t, resp.StatusCode, http.StatusOK, "Expected status code 200 OK")
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200 OK")
 
+	// Use userResponse model for response (no password field)
 	var user struct {
-		ID       int    `json:"id"`
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		ID    int    `json:"id"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
 	}
+
 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
 	assert.Equal(t, updatedUser.Name, user.Name, "Updated user name mismatch")
 	assert.Equal(t, updatedUser.Email, user.Email, "Updated user email mismatch")
-	assert.Equal(t, updatedUser.Password, user.Password, "Updated user password mismatch")
 	assert.Equal(t, 1, user.ID, "Updated user ID mismatch")
 
 	// verify the user was updated in the database
@@ -249,10 +283,12 @@ func TestUpdateUser(t *testing.T) {
 		Email    string `db:"email"`
 		Password string `db:"password"`
 	}
+
 	err = db.Get(&dbUser, "SELECT id, name, email, password FROM users WHERE id = ?", 1)
 	if err != nil {
 		t.Fatalf("Failed to query user from DB: %v", err)
 	}
+
 	assert.Equal(t, updatedUser.Name, dbUser.Name, "DB user name mismatch after update")
 	assert.Equal(t, updatedUser.Email, dbUser.Email, "DB user email mismatch after update")
 	assert.Equal(t, updatedUser.Password, dbUser.Password, "DB user password mismatch after update")
@@ -268,10 +304,16 @@ func TestDeleteUser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test server: %v", err)
 	}
+
 	t.Cleanup(server.Close)
 
 	// Delete user with ID 2 (Bob)
-	req, err := http.NewRequest(http.MethodDelete, server.URL+"/api/user/2", nil)
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodDelete,
+		server.URL+"/api/user/2",
+		nil,
+	)
 	if err != nil {
 		t.Fatalf("Failed to create DELETE request: %v", err)
 	}
@@ -282,7 +324,7 @@ func TestDeleteUser(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	assert.Equal(t, resp.StatusCode, http.StatusNoContent, "Expected status code 204 No Content")
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode, "Expected status code 204 No Content")
 
 	// --- Verify user is no longer in the database ---
 	var dbUser struct {
@@ -291,6 +333,7 @@ func TestDeleteUser(t *testing.T) {
 		Email    string `db:"email"`
 		Password string `db:"password"`
 	}
+
 	err = db.Get(&dbUser, "SELECT id, name, email, password FROM users WHERE id = ?", 2)
 	assert.Error(t, err, "Expected error when querying deleted user")
 }

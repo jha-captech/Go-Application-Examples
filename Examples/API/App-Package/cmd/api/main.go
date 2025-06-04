@@ -44,6 +44,7 @@ func run(ctx context.Context) error {
 
 	// Connect to the PostgreSQL database using the provided config.
 	logger.DebugContext(ctx, "Connecting to and pinging the database")
+
 	db, err := sqlx.Connect(
 		"pgx", fmt.Sprintf(
 			"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
@@ -57,6 +58,7 @@ func run(ctx context.Context) error {
 	// Ensure the database connection is closed on exit.
 	defer func() {
 		logger.DebugContext(ctx, "Closing database connection")
+
 		if err = db.Close(); err != nil {
 			logger.ErrorContext(ctx, "Failed to close database connection", "err", err)
 		}
@@ -96,6 +98,7 @@ func run(ctx context.Context) error {
 					if err := httpServer.Shutdown(ctx); err != nil {
 						return fmt.Errorf("[in main.run] failed to shutdown server: %w", err)
 					}
+
 					return nil
 				},
 			)

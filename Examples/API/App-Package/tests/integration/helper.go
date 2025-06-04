@@ -7,7 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // import SQLite driver for sqlx
 
 	"example.com/examples/api/app-package/internal/app"
 )
@@ -18,7 +18,7 @@ import (
 func newTestDB() (*sqlx.DB, error) {
 	db, err := sqlx.Open("sqlite3", ":memory:")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open in-memory db: %v", err)
+		return nil, fmt.Errorf("failed to open in-memory db: %w", err)
 	}
 
 	schema := `
@@ -38,7 +38,7 @@ func newTestDB() (*sqlx.DB, error) {
 	// execute schema creation and data insertion
 	_, err = db.Exec(schema)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create schema or insert test data: %v", err)
+		return nil, fmt.Errorf("failed to create schema or insert test data: %w", err)
 	}
 
 	return db, nil
@@ -51,7 +51,7 @@ func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 	// set up in-memory database
 	db, err := newTestDB()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create test database: %v", err)
+		return nil, nil, fmt.Errorf("failed to create test database: %w", err)
 	}
 
 	logger := slog.Default()
@@ -67,5 +67,6 @@ func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 
 	// start a test server with wrapped handler
 	server := httptest.NewServer(wrappedHandler)
+
 	return server, db, nil
 }

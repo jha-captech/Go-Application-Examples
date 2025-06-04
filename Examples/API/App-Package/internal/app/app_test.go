@@ -17,11 +17,13 @@ func TestEncodeResponse(t *testing.T) {
 		status int
 		data   any
 	}
+
 	type want struct {
 		status       int
 		body         string
 		bodyContains string
 	}
+
 	tests := map[string]struct {
 		fields fields
 		want   want
@@ -92,10 +94,10 @@ func TestEncodeResponse(t *testing.T) {
 	}
 
 	for name, tc := range tests {
-		tc := tc
 		t.Run(
 			name, func(t *testing.T) {
 				t.Parallel()
+
 				rec := httptest.NewRecorder()
 
 				encodeResponseJSON(rec, tc.fields.status, tc.fields.data)
@@ -114,6 +116,7 @@ func TestEncodeResponse(t *testing.T) {
 					_ = json.Unmarshal([]byte(tc.want.body), &want)
 					assert.Equal(t, want, got)
 				}
+
 				if tc.want.bodyContains != "" {
 					assert.Contains(t, body, tc.want.bodyContains)
 				}

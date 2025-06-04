@@ -15,7 +15,7 @@ type middlewareFunc = func(next http.Handler) http.Handler
 
 // WrapHandler applies a list of middlewares to an http.Handler in reverse order.
 func WrapHandler(handler http.Handler, middlewares ...middlewareFunc) http.Handler {
-	if len(middlewares) <= 0 {
+	if len(middlewares) == 0 {
 		return handler
 	}
 
@@ -32,12 +32,6 @@ func WrapHandler(handler http.Handler, middlewares ...middlewareFunc) http.Handl
 type wrappedWriter struct {
 	http.ResponseWriter
 	statusCode int
-}
-
-// writeHeader writes the HTTP status code and stores it in the wrappedWriter.
-func (w *wrappedWriter) writeHeader(statusCode int) {
-	w.ResponseWriter.WriteHeader(statusCode)
-	w.statusCode = statusCode
 }
 
 // LoggingMiddleware logs the HTTP request method, path, duration, and status code.
@@ -74,15 +68,14 @@ func RecoveryMiddleware(logger *slog.Logger) middlewareFunc {
 			func(w http.ResponseWriter, r *http.Request) {
 				defer func() {
 					if rc := recover(); rc != nil {
-
 						logger.InfoContext(
 							r.Context(),
 							"panic recovered",
 							slog.Any("error", rc),
-							slog.Int("status", 500),
+							slog.Int("status", http.StatusInternalServerError),
 						)
 
-						w.WriteHeader(500)
+						w.WriteHeader(http.StatusInternalServerError)
 					}
 				}()
 				next.ServeHTTP(w, r)
@@ -94,39 +87,12 @@ func RecoveryMiddleware(logger *slog.Logger) middlewareFunc {
 // traceIDKey is a unique type for storing the trace ID in the context.
 type traceIDKey struct{}
 
-// traceIdOptions holds options for the traceIDMiddleware.
-type traceIdOptions struct {
-	header string
-}
-
-// traceIDOption is a function that modifies traceIdOptions.
-type traceIDOption func(*traceIdOptions)
-
-// withHeader sets the header name for the trace ID to be extracted from the request.
-func withHeader(header string) traceIDOption {
-	return func(opts *traceIdOptions) {
-		opts.header = header
-	}
-}
-
 // TraceIDMiddleware injects a trace ID into the request context.
-func TraceIDMiddleware(options ...traceIDOption) middlewareFunc {
-	opts := &traceIdOptions{
-		header: "",
-	}
-
-	for _, opt := range options {
-		opt(opts)
-	}
-
+func TraceIDMiddleware() middlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
-				traceID := ""
-
-				if opts.header != "" {
-					traceID = r.Header.Get("X-Trace-Id")
-				}
+				traceID := r.Header.Get("X-Trace-Id")
 
 				if traceID == "" {
 					traceID = uuid.NewString()
