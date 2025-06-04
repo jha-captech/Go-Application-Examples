@@ -102,11 +102,10 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		}
 
 		// respond with userResponse (no password)
-		resp := userResponse{
+		_ = encodeResponseJSON(w, http.StatusOK, userResponse{
 			ID:    user.ID,
 			Name:  user.Name,
 			Email: user.Email,
-		}
-		_ = encodeResponseJSON(w, http.StatusOK, resp)
+		})
 	}
 }

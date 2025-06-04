@@ -79,7 +79,7 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			logger.ErrorContext(
 				ctx,
 				"Validation error",
-				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
+				slog.Any("validation_errors", problems),
 			)
 
 			_ = encodeResponseJSON(w, http.StatusBadRequest, problemDetailValidation{
@@ -151,11 +151,10 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		)
 
 		// respond with updated user (without password)
-		resp := userResponse{
+		_ = encodeResponseJSON(w, http.StatusOK, userResponse{
 			ID:    updatedUser.ID,
 			Name:  updatedUser.Name,
 			Email: updatedUser.Email,
-		}
-		_ = encodeResponseJSON(w, http.StatusOK, resp)
+		})
 	}
 }

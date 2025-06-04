@@ -1,4 +1,20 @@
 definitions:
+  app.healthResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/app.healthStatus'
+        type: array
+      status:
+        type: string
+    type: object
+  app.healthStatus:
+    properties:
+      name:
+        type: string
+      status:
+        type: string
+    type: object
   app.problemDetail:
     properties:
       detail:
@@ -215,4 +231,23 @@ paths:
       summary: Update User
       tags:
       - user
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Health Check endpoint
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/app.healthResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/app.healthResponse'
+      summary: Health Check
+      tags:
+      - health
 swagger: "2.0"
