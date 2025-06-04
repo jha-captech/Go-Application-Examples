@@ -8,13 +8,15 @@ import (
 	"net/http/httptest"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
+
+	_ "github.com/mattn/go-sqlite3"
+
 	"example.com/examples/api/layered/internal/middleware"
 	"example.com/examples/api/layered/internal/routes"
 	"example.com/examples/api/layered/internal/services"
 	"example.com/examples/api/layered/internal/telemetry"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/redis/go-redis/v9"
 )
 
 // NewTestDB returns an in-memory SQLite DB with a users table and some test data.
@@ -48,11 +50,12 @@ func newTestDB() (*sqlx.DB, error) {
 
 type TestRedis struct{}
 
-func NewTestRedis() *TestRedis {
-	return &TestRedis{}
-}
-
-func (r *TestRedis) Set(ctx context.Context, key string, value any, exp time.Duration) *redis.StatusCmd {
+func (r *TestRedis) Set(
+	ctx context.Context,
+	key string,
+	value any,
+	exp time.Duration,
+) *redis.StatusCmd {
 	return redis.NewStatusCmd(ctx, "OK")
 }
 
@@ -77,7 +80,7 @@ func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 
 	logger := slog.Default()
 
-	rdb := NewTestRedis()
+	rdb := &TestRedis{}
 
 	// Create a new users service
 	usersService := services.NewUsersService(logger, db, rdb, 0)

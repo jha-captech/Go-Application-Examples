@@ -3,11 +3,12 @@ package routes
 import (
 	"log/slog"
 
+	httpSwagger "github.com/swaggo/http-swagger/v2"
+
 	_ "example.com/examples/api/layered/cmd/api/docs"
 	"example.com/examples/api/layered/internal/handlers"
 	"example.com/examples/api/layered/internal/services"
 	"example.com/examples/api/layered/internal/telemetry"
-	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // AddRoutes registers the API routes with the provided ServeMux.

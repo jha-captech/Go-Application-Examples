@@ -12,7 +12,12 @@ import (
 
 // RedisClient is an interface that defines some of the methods used by Redis.
 type RedisClient interface {
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	Set(
+		ctx context.Context,
+		key string,
+		value interface{},
+		expiration time.Duration,
+	) *redis.StatusCmd
 	Get(ctx context.Context, key string) *redis.StringCmd
 	Del(ctx context.Context, keys ...string) *redis.IntCmd
 	Ping(ctx context.Context) *redis.StatusCmd
