@@ -40,6 +40,7 @@ func SetupOTelSDK(ctx context.Context, cfg Config) (
 		if err != nil {
 			return fmt.Errorf("[in telemetry.SetupOTelSDK] shutdown error: %w", err)
 		}
+
 		return nil
 	}
 
@@ -64,6 +65,7 @@ func SetupOTelSDK(ctx context.Context, cfg Config) (
 	return
 }
 
+// newPropagator creates a new OpenTelemetry propagator
 func newPropagator() propagation.TextMapPropagator {
 	return propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
@@ -71,6 +73,7 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
+// newTracerProvider creates a new OpenTelemetry tracer provider with OTLP gRPC exporter.
 func newTracerProvider(ctx context.Context, cfg Config) (*trace.TracerProvider, error) {
 	traceExporter, err := otlptracegrpc.New(
 		ctx,
@@ -93,5 +96,6 @@ func newTracerProvider(ctx context.Context, cfg Config) (*trace.TracerProvider, 
 			),
 		),
 	)
+
 	return tracerProvider, nil
 }

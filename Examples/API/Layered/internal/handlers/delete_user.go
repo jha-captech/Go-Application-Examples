@@ -11,7 +11,7 @@ import (
 	"example.com/examples/api/layered/internal/middleware"
 )
 
-// uerDeleter represents a type capable of deleting a user from storage
+// userDeleter represents a type capable of deleting a user from storage
 type userDeleter interface {
 	DeleteUser(ctx context.Context, id uint64) error
 }

@@ -92,12 +92,11 @@ func TestEncodeResponseJSON(t *testing.T) {
 	}
 
 	for name, tc := range tests {
-		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			rec := httptest.NewRecorder()
 
-			encodeResponseJSON(rec, tc.fields.status, tc.fields.data)
+			_ = encodeResponseJSON(rec, tc.fields.status, tc.fields.data)
 
 			res := rec.Result()
 			defer res.Body.Close()

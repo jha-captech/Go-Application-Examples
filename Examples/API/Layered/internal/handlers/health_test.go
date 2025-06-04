@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"example.com/examples/api/layered/internal/services"
 )
@@ -87,7 +88,7 @@ func TestHandleHealthCheck(t *testing.T) {
 		t.Run(
 			name, func(t *testing.T) {
 				// Create a new request
-				req := httptest.NewRequest("GET", "/health", nil)
+				req := httptest.NewRequest(http.MethodGet, "/health", nil)
 
 				// Create a new response recorder
 				rec := httptest.NewRecorder()
@@ -110,7 +111,7 @@ func TestHandleHealthCheck(t *testing.T) {
 				// Check the body
 				var resp healthResponse
 				err := json.Unmarshal(rec.Body.Bytes(), &resp)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tc.wantResponse, resp)
 			},
 		)

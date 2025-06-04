@@ -43,16 +43,6 @@ type StringCmd struct {
 	*redis.StringCmd
 }
 
-// Wraps redis.StatusCmd for potential future extensions.
-type StatusCmd struct {
-	*redis.StatusCmd
-}
-
-// Wraps redis.IntCmd to provide additional helpers for result extraction.
-type IntCmd struct {
-	*redis.IntCmd
-}
-
 // Marshals the given value to JSON and stores it in Redis under the specified key with the
 // configured expiration.
 func (c *Client) SetMarshal(ctx context.Context, key string, value any) error {

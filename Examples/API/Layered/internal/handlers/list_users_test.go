@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -33,7 +34,7 @@ func TestHandleListUser(t *testing.T) {
 		t.Run(
 			name, func(t *testing.T) {
 				// Create a new request
-				req := httptest.NewRequest("GET", "/users", nil)
+				req := httptest.NewRequest(http.MethodGet, "/users", nil)
 
 				// Create a new response recorder
 				rec := httptest.NewRecorder()
@@ -42,7 +43,7 @@ func TestHandleListUser(t *testing.T) {
 				logger := slog.Default()
 
 				mockedUserLister := &moqusersLister{
-					ListUsersFunc: func(ctx context.Context) ([]models.User, error) {
+					ListUsersFunc: func(_ context.Context) ([]models.User, error) {
 						return tc.wantBody, nil
 					},
 				}

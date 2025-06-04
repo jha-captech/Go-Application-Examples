@@ -5,6 +5,7 @@ import (
 
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 
+	// Import the generated Swagger docs
 	_ "example.com/examples/api/layered/cmd/api/docs"
 	"example.com/examples/api/layered/internal/handlers"
 	"example.com/examples/api/layered/internal/services"

@@ -11,6 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 
+	// Import the SQLite driver
 	_ "github.com/mattn/go-sqlite3"
 
 	"example.com/examples/api/layered/internal/middleware"
@@ -23,9 +24,9 @@ type TestRedis struct{}
 
 func (r *TestRedis) Set(
 	ctx context.Context,
-	key string,
-	value any,
-	exp time.Duration,
+	_ string,
+	_ any,
+	_ time.Duration,
 ) *redis.StatusCmd {
 	return redis.NewStatusCmd(ctx, "OK")
 }
@@ -46,7 +47,7 @@ func (r *TestRedis) Ping(ctx context.Context) *redis.StatusCmd {
 func newTestDB() (*sqlx.DB, error) {
 	db, err := sqlx.Open("sqlite3", ":memory:")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open in-memory db: %v", err)
+		return nil, fmt.Errorf("failed to open in-memory db: %w", err)
 	}
 
 	schema := `
@@ -65,14 +66,14 @@ func newTestDB() (*sqlx.DB, error) {
 
 	_, err = db.Exec(schema)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create schema or insert test data: %v", err)
+		return nil, fmt.Errorf("failed to create schema or insert test data: %w", err)
 	}
 
 	return db, nil
 }
 
 func newTestServer() (*httptest.Server, *sqlx.DB, error) {
-	// set up in-memory database
+	// Set up in-memory database
 	db, err := newTestDB()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create test database: %v", err)
@@ -91,7 +92,7 @@ func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 	// Add our routes to the mux
 	routes.AddRoutes(mux, logger, usersService)
 
-	// create handler and wrap in middleware
+	// Create handler and wrap in middleware
 	wrappedMux := middleware.WrapHandler(
 		mux.InstrumentRootHandler(),
 		middleware.TraceID(),

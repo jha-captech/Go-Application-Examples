@@ -10,21 +10,22 @@ import (
 
 type traceIDKey struct{}
 
-type traceIdOptions struct {
+type traceIDOptions struct {
 	header string
 }
 
-type TraceIDOption func(*traceIdOptions)
+type TraceIDOption func(*traceIDOptions)
 
 // WithHeader sets the header name for the trace ID.
 func WithHeader(header string) TraceIDOption {
-	return func(opts *traceIdOptions) {
+	return func(opts *traceIDOptions) {
 		opts.header = header
 	}
 }
 
+// TraceID is a middleware that generates or retrieves a trace ID for each request.
 func TraceID(options ...TraceIDOption) Func {
-	opts := &traceIdOptions{
+	opts := &traceIDOptions{
 		header: "",
 	}
 
@@ -57,6 +58,7 @@ func TraceID(options ...TraceIDOption) Func {
 	}
 }
 
+// GetTraceID retrieves the trace ID from the context.
 func GetTraceID(ctx context.Context) string {
 	if ctx == nil {
 		return ""
@@ -70,6 +72,7 @@ func GetTraceID(ctx context.Context) string {
 	return traceID
 }
 
+// GetTraceIDAsAttr retrieves the trace ID from the context and returns it as a slog.Attr.
 func GetTraceIDAsAttr(ctx context.Context) slog.Attr {
 	traceID := GetTraceID(ctx)
 	if traceID == "" {

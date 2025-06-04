@@ -67,7 +67,7 @@ func (s *UsersService) DeepHealthCheck(ctx context.Context) ([]HealthStatus, err
 		cacheStatus.Status = "unhealthy"
 		if err != nil {
 			err = fmt.Errorf(
-				"%v; [in services.UsersService.DeepHealthCheck] failed to ping cache: %w",
+				"%w; [in services.UsersService.DeepHealthCheck] failed to ping cache: %w",
 				err,
 				cacheErr,
 			)

@@ -96,7 +96,7 @@ func TestListUsers(t *testing.T) {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
 
-	assert.Equal(t, len(expected), len(response.Users), "Expected number of users does not match")
+	assert.Len(t, response.Users, len(expected), "Expected number of users does not match")
 
 	for i, exp := range expected {
 		got := response.Users[i]
@@ -141,7 +141,7 @@ func TestCreateUser(t *testing.T) {
 		t.Fatalf("Expected status 201 Created, got %d", resp.StatusCode)
 	}
 
-	assert.Equal(t, resp.StatusCode, http.StatusCreated, "Expected status code 201 Created")
+	assert.Equal(t, http.StatusCreated, resp.StatusCode, "Expected status code 201 Created")
 
 	var createdUser struct {
 		ID    int    `json:"id"`
@@ -155,7 +155,7 @@ func TestCreateUser(t *testing.T) {
 	assert.Equal(t, newUser.Name, createdUser.Name, "Created user name mismatch")
 	assert.Equal(t, newUser.Email, createdUser.Email, "Created user email mismatch")
 
-	// verify the new user was inserted into the database
+	// Verify the new user was inserted into the database
 	var dbUser struct {
 		ID       int    `db:"id"`
 		Name     string `db:"name"`
@@ -201,7 +201,12 @@ func TestUpdateUser(t *testing.T) {
 		t.Fatalf("Failed to marshal user: %v", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPut, server.URL+"/api/user/1", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPut,
+		server.URL+"/api/user/1",
+		bytes.NewReader(body),
+	)
 	if err != nil {
 		t.Fatalf("Failed to create PUT request: %v", err)
 	}
@@ -213,7 +218,7 @@ func TestUpdateUser(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	assert.Equal(t, resp.StatusCode, http.StatusOK, "Expected status code 200 OK")
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200 OK")
 
 	var user struct {
 		ID    int    `json:"id"`
@@ -228,7 +233,7 @@ func TestUpdateUser(t *testing.T) {
 	assert.Equal(t, updatedUser.Email, user.Email, "Updated user email mismatch")
 	assert.Equal(t, 1, user.ID, "Updated user ID mismatch")
 
-	// verify the user was updated in the database
+	// Verify the user was updated in the database
 	var dbUser struct {
 		ID       int    `db:"id"`
 		Name     string `db:"name"`
@@ -255,7 +260,12 @@ func TestDeleteUser(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	// Delete user with ID 2 (Bob)
-	req, err := http.NewRequest(http.MethodDelete, server.URL+"/api/user/2", nil)
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodDelete,
+		server.URL+"/api/user/2",
+		nil,
+	)
 	if err != nil {
 		t.Fatalf("Failed to create DELETE request: %v", err)
 	}
@@ -266,9 +276,9 @@ func TestDeleteUser(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	assert.Equal(t, resp.StatusCode, http.StatusNoContent, "Expected status code 204 No Content")
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode, "Expected status code 204 No Content")
 
-	// --- Verify user is no longer in the database ---
+	// Verify user is no longer in the database
 	var dbUser struct {
 		ID       int    `db:"id"`
 		Name     string `db:"name"`

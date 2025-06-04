@@ -14,6 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"example.com/examples/api/layered/internal/models"
 )
@@ -161,7 +162,7 @@ func TestUsersService_ReadUser(t *testing.T) {
 			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"), rdb, 0)
 
 			output, err := userService.ReadUser(t.Context(), tc.input)
-			assert.ErrorIs(t, err, tc.expectedError)
+			require.ErrorIs(t, err, tc.expectedError)
 			assert.Equal(t, tc.expectedOutput, output)
 
 			if tc.mockCalled {
@@ -264,7 +265,7 @@ func TestUsersService_ListUsers(t *testing.T) {
 			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"), rdb, 0)
 
 			outputs, err := userService.ListUsers(t.Context())
-			assert.ErrorIs(t, err, tc.expectedError)
+			require.ErrorIs(t, err, tc.expectedError)
 
 			for i, output := range outputs {
 				assert.Equal(t, tc.expectedOutput[i], output)

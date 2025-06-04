@@ -47,14 +47,14 @@ func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.Handler
 				"failed to decode request",
 				slog.String("error", err.Error()),
 			)
-			// otel set error info
+			// Otel set error info
 			span.SetStatus(codes.Error, "decoding request failed")
 			span.RecordError(err)
 
 			_ = encodeResponseJSON(
 				w, http.StatusInternalServerError, ProblemDetail{
 					Title:   "Bad Request",
-					Status:  400,
+					Status:  http.StatusBadRequest,
 					Detail:  "Invalid request body.",
 					TraceID: middleware.GetTraceID(ctx),
 				},

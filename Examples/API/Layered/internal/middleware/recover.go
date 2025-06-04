@@ -12,15 +12,14 @@ func Recover(logger *slog.Logger) Func {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if rc := recover(); rc != nil {
-
 					logger.InfoContext(
 						r.Context(),
 						"panic recovered",
 						slog.Any("error", rc),
-						slog.Int("status", 500),
+						slog.Int("status", http.StatusInternalServerError),
 					)
 
-					w.WriteHeader(500)
+					w.WriteHeader(http.StatusInternalServerError)
 				}
 			}()
 			next.ServeHTTP(w, r)

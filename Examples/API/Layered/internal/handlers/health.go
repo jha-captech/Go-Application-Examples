@@ -10,8 +10,7 @@ import (
 	"example.com/examples/api/layered/internal/services"
 )
 
-// userCreator represents a type capable of reading a user from storage and
-// returning it or an error.
+// healthChecker defines the interface for health check services.
 type healthChecker interface {
 	DeepHealthCheck(ctx context.Context) ([]services.HealthStatus, error)
 }
@@ -49,6 +48,7 @@ func HandleHealthCheck(logger *slog.Logger, userHealth healthChecker) http.Handl
 			if check.Status != upStatus {
 				status = "unhealthy"
 				code = http.StatusInternalServerError
+
 				break
 			}
 		}

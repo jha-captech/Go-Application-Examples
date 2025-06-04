@@ -39,12 +39,14 @@ type ProblemDetail struct {
 	TraceID string `json:"traceId,omitempty"`
 }
 
+// validationProblem represents a single validation error detail.
 type validationProblem struct {
 	Field   string `json:"field"`
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
+// ProblemDetailValidation extends ProblemDetail to include validation errors.
 type ProblemDetailValidation struct {
 	ProblemDetail
 	InvalidParams []validationProblem `json:"invalidParams"` // A list of invalid parameters with error details.
@@ -76,11 +78,14 @@ func decodeValid[T any](r *http.Request) (T, []validationProblem, error) {
 				Message: problem.Error(),
 			}
 		}
+
 		return v, validationProblems, nil
 	}
+
 	return v, []validationProblem{}, nil
 }
 
+// validate validates the provided data using the validator package.
 func validate[T any](data *T, options ...validator.Option) ([]validator.FieldError, error) {
 	v := validator.New(options...)
 	if err := v.Struct(data); err != nil {
@@ -112,6 +117,7 @@ func NewValidationBadRequest(
 	}
 }
 
+// NewNotFound is a helper that creates a ProblemDetail instance for a 500 error.
 func NewInternalServerError(ctx context.Context) ProblemDetail {
 	return ProblemDetail{
 		Title:   "Internal Server Error",

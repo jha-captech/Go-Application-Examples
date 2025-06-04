@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -39,7 +40,7 @@ func TestHandleCreateUser(t *testing.T) {
 			name, func(t *testing.T) {
 				// Create a new request
 				reqBody, _ := json.Marshal(tc.input)
-				req := httptest.NewRequest("POST", "/users", bytes.NewBuffer(reqBody))
+				req := httptest.NewRequest(http.MethodPost, "/users", bytes.NewBuffer(reqBody))
 
 				// Create a new response recorder
 				rec := httptest.NewRecorder()
@@ -48,7 +49,7 @@ func TestHandleCreateUser(t *testing.T) {
 				logger := slog.Default()
 
 				mockedUserCreator := &moquserCreator{
-					CreateUserFunc: func(ctx context.Context, user models.User) (
+					CreateUserFunc: func(_ context.Context, user models.User) (
 						models.User,
 						error,
 					) {

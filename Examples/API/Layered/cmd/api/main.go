@@ -125,8 +125,9 @@ func run(ctx context.Context) error {
 
 	// Create a new http server with our mux as the handler
 	srv := &http.Server{
-		Addr:    ":8080",
-		Handler: wrappedMux,
+		Addr:              ":8080",
+		Handler:           wrappedMux,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)

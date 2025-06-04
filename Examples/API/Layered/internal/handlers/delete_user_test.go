@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestHandleDeleteUser(t *testing.T) {
 			name, func(t *testing.T) {
 				// Create a new request
 				reqBody, _ := json.Marshal(tc.input)
-				req := httptest.NewRequest("DELETE", "/users", bytes.NewBuffer(reqBody))
+				req := httptest.NewRequest(http.MethodDelete, "/users", bytes.NewBuffer(reqBody))
 				req.SetPathValue("id", "1")
 
 				// Create a new response recorder

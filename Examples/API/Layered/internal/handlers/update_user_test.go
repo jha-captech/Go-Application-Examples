@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -39,7 +40,7 @@ func TestHandleUpdateUser(t *testing.T) {
 			name, func(t *testing.T) {
 				// Create a new request
 				reqBody, _ := json.Marshal(tc.input)
-				req := httptest.NewRequest("PUT", "/users", bytes.NewBuffer(reqBody))
+				req := httptest.NewRequest(http.MethodPut, "/users", bytes.NewBuffer(reqBody))
 				req.SetPathValue("id", "1")
 
 				// Create a new response recorder
@@ -50,9 +51,9 @@ func TestHandleUpdateUser(t *testing.T) {
 
 				mockedUserUpdater := &moquserUpdater{
 					UpdateUserFunc: func(
-						ctx context.Context,
-						id uint64,
-						user models.User,
+						_ context.Context,
+						_ uint64,
+						_ models.User,
 					) (models.User, error) {
 						return tc.wantBody, nil
 					},

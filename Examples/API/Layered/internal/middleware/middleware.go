@@ -9,7 +9,7 @@ import (
 type Func = func(next http.Handler) http.Handler
 
 func WrapHandler(handler http.Handler, middlewares ...Func) http.Handler {
-	if len(middlewares) <= 0 {
+	if len(middlewares) == 0 {
 		return handler
 	}
 
