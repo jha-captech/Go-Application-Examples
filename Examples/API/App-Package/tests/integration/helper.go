@@ -57,7 +57,7 @@ func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 	logger := slog.Default()
 
 	// create handler and wrap in middleware
-	handler := app.NewHandler(logger, db)
+	handler := app.NewHandler(logger, db, false)
 	wrappedHandler := app.WrapHandler(
 		handler,
 		app.TraceIDMiddleware(),

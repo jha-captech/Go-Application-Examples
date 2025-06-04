@@ -16,6 +16,7 @@ type Config struct {
 	DBUserPassword string     `env:"DATABASE_PASSWORD,required"`
 	DBName         string     `env:"DATABASE_NAME,required"`
 	DBPort         string     `env:"DATABASE_PORT,required"`
+	EnableSwagger  bool       `env:"ENABLE_SWAGGER"`
 	Host           string     `env:"HOST,required"`
 	Port           string     `env:"PORT,required"`
 	LogLevel       slog.Level `env:"LOG_LEVEL,required"`

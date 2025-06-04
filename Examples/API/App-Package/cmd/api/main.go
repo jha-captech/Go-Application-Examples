@@ -65,7 +65,7 @@ func run(ctx context.Context) error {
 	}()
 
 	// Create the main HTTP handler and wrap it with middleware for tracing, logging, and recovery.
-	handler := app.NewHandler(logger, db)
+	handler := app.NewHandler(logger, db, cfg.EnableSwagger)
 
 	// Wrap the handler with middleware for tracing, logging, and recovery.
 	wrappedHandler := app.WrapHandler(

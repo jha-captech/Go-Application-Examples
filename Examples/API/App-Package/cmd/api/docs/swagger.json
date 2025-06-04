@@ -228,9 +228,63 @@
                     }
                 }
             }
+        },
+        "/health": {
+            "get": {
+                "description": "Health Check endpoint",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health Check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/app.healthResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/app.healthResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "app.healthResponse": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/app.healthStatus"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "app.healthStatus": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "app.problemDetail": {
             "type": "object",
             "properties": {
