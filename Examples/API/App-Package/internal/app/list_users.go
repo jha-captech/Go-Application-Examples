@@ -10,13 +10,13 @@ import (
 // listUsers is an HTTP handler function that retrieves a list of all users from
 // the database.
 //
-// @Summary		List Users
-// @Description	List all users
-// @Tags		user
-// @Produce		json
-// @Success		200	{array}	User
-// @Failure		500	{object}	string
-// @Router		/user	[GET]
+//	@Summary		List Users
+//	@Description	List all users
+//	@Tags			user
+//	@Produce		json
+//	@Success		200			{array}		user
+//	@Failure		500			{object}	problemDetail
+//	@Router			/api/users	[GET]
 func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	const funcName = "app.listUsers"
 	logger = logger.With(slog.String("func", funcName))

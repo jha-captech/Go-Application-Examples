@@ -10,16 +10,16 @@ import (
 
 // createUser is an HTTP handler function that creates a new user in the database.
 //
-// @Summary		Create User
-// @Description	Create a new user
-// @Tags		user
-// @Accept		json
-// @Produce		json
-// @Param		user	body		User	true	"User data"
-// @Success		201		{object}	User
-// @Failure		400		{object}	string
-// @Failure		500		{object}	string
-// @Router		/user [POST]
+//	@Summary		Create User
+//	@Description	Create a new user
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			user	body		user	true	"User data"
+//	@Success		201		{object}	userResponse
+//	@Failure		400		{object}	problemDetailValidation
+//	@Failure		500		{object}	problemDetail
+//	@Router			/api/user [POST]
 func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	const funcName = "app.createUser"
 	logger = logger.With(slog.String("func", funcName))

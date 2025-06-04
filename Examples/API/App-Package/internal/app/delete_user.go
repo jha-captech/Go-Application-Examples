@@ -11,16 +11,16 @@ import (
 
 // deleteUser is an HTTP handler function that deletes a user by ID from the database.
 //
-// @Summary		Delete User
-// @Description	Delete a user by ID
-// @Tags		user
-// @Produce		json
-// @Param		id	path		string	true	"User ID"
-// @Success		204	{string}	string	""
-// @Failure		400	{object}	string
-// @Failure		404	{object}	string
-// @Failure		500	{object}	string
-// @Router		/user/{id} [DELETE]
+//	@Summary		Delete User
+//	@Description	Delete a user by ID
+//	@Tags			user
+//	@Produce		json
+//	@Param			id	path		string	true	"User ID"
+//	@Success		204	{string}	string	""
+//	@Failure		400	{object}	problemDetail
+//	@Failure		404	{object}	problemDetail
+//	@Failure		500	{object}	problemDetail
+//	@Router			/api/user/{id} [DELETE]
 func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	const funcName = "app.deleteUser"
 	logger = logger.With(slog.String("func", funcName))

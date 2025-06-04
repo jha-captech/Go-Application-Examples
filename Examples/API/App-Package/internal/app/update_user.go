@@ -13,18 +13,18 @@ import (
 
 // readUser is an HTTP handler function that reads a user by ID from the database.
 //
-// @Summary		Update User
-// @Description	Update user fields by ID
-// @Tags		user
-// @Accept		json
-// @Produce		json
-// @Param		id		path	string	true	"User ID"
-// @Param		user	body	User	true	"User data"
-// @Success		200		{object}	User
-// @Failure		400		{object}	string
-// @Failure		404		{object}	string
-// @Failure		500		{object}	string
-// @Router		/user/{id} [PUT]
+//	@Summary		Update User
+//	@Description	Update user fields by ID
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string	true	"User ID"
+//	@Param			user	body		user	true	"User data"
+//	@Success		200		{object}	userResponse
+//	@Failure		400		{object}	problemDetailValidation
+//	@Failure		404		{object}	problemDetail
+//	@Failure		500		{object}	problemDetail
+//	@Router			/api/user/{id} [PUT]
 func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	const funcName = "app.updateUser"
 	logger = logger.With(slog.String("func", funcName))

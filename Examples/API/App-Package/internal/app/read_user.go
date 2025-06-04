@@ -13,17 +13,17 @@ import (
 
 // readUser is an HTTP handler function that retrieves a user by ID from the database.
 //
-// @Summary		Read User
-// @Description	Read User by ID
-// @Tags		user
-// @Accept		json
-// @Produce		json
-// @Param		id	path		string	true	"User ID"
-// @Success		200	{object}	models.User
-// @Failure		400	{object}	string
-// @Failure		404	{object}	string
-// @Failure		500	{object}	string
-// @Router		/user/{id}	[GET]
+//	@Summary		Read User
+//	@Description	Read User by ID
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			id				path		string	true	"User ID"
+//	@Success		200				{object}	userResponse
+//	@Failure		400				{object}	problemDetail
+//	@Failure		404				{object}	problemDetail
+//	@Failure		500				{object}	problemDetail
+//	@Router			/api/user/{id}	[GET]
 func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	const funcName = "app.readUser"
 	logger = logger.With(slog.String("func", funcName))

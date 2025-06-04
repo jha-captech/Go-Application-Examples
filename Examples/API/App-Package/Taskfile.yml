@@ -24,6 +24,7 @@ tasks:
       - go install mvdan.cc/gofumpt@latest
       - go install github.com/daixiang0/gci@latest
       - go install github.com/4meepo/tagalign/cmd/tagalign@latest
+      - go install github.com/swaggo/swag/cmd/swag@latest
 
       # --- Project dependencies ---
       - |
@@ -64,6 +65,13 @@ tasks:
     cmds:
       - echo "Running tests..."
       - go test -count=1 ./...
+    silent: true
+
+  docs:generate:
+    desc: Generate swagger documentation using GoDoc
+    cmds:
+      - swag init -g internal/app/routes.go --output "cmd/api/docs"
+      - swag fmt
     silent: true
 
   mock:generate:
