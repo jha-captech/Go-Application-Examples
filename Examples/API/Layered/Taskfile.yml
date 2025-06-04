@@ -61,14 +61,14 @@ tasks:
     silent: true
 
   test:unit:
-    desc: Run all Go tests
+    desc: Run all Go unit tests
     cmds:
       - echo "Running unit tests..."
       - go test -count=1 ./internal/...
     silent: true
 
   test:integration:
-    desc: Run all Go tests
+    desc: Run all Go integration tests
     cmds:
       - echo "Running integration tests..."
       - go test -count=1 ./tests/integration

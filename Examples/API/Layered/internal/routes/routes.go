@@ -31,6 +31,7 @@ func AddRoutes(
 	mux *telemetry.InstrumentedServeMux,
 	logger *slog.Logger,
 	usersService *services.UsersService,
+	swaggerEnabled bool,
 ) {
 	// User endpoints
 	mux.Handle("GET /api/user/{id}", handlers.HandleReadUser(logger, usersService))
@@ -42,9 +43,14 @@ func AddRoutes(
 	// Health check
 	mux.Handle("GET /api/health", handlers.HandleHealthCheck(logger, usersService))
 
-	// Swagger docs
-	mux.Handle(
-		"GET /swagger/",
-		httpSwagger.Handler(httpSwagger.URL("http://localhost:8080/swagger/doc.json")),
-	)
+	if swaggerEnabled {
+		// Swagger docs
+		mux.Handle(
+			"GET /swagger/",
+			httpSwagger.Handler(httpSwagger.URL("http://localhost:8080/swagger/doc.json")),
+		)
+	}
+
+	// Catch-all route for 404 Not Found with problem detail
+	mux.HandleFunc("/", handlers.HandleCatchAll())
 }

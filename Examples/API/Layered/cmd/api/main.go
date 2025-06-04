@@ -113,7 +113,7 @@ func run(ctx context.Context) error {
 	mux := telemetry.InstrumentServeMux(http.NewServeMux())
 
 	// Add our routes to the mux
-	routes.AddRoutes(mux, logger, usersService)
+	routes.AddRoutes(mux, logger, usersService, cfg.SwaggerEnabled)
 
 	// Wrap the mux with middleware
 	wrappedMux := middleware.WrapHandler(

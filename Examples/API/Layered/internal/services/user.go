@@ -51,7 +51,7 @@ func (s *UsersService) DeepHealthCheck(ctx context.Context) ([]HealthStatus, err
 	var err error
 
 	// DB check
-	dbStatus := HealthStatus{Name: "db", Status: "up"}
+	dbStatus := HealthStatus{Name: "db", Status: "healthy"}
 	if dbErr := s.db.PingContext(ctx); dbErr != nil {
 		dbStatus.Status = "unhealthy"
 		err = fmt.Errorf(
@@ -62,7 +62,7 @@ func (s *UsersService) DeepHealthCheck(ctx context.Context) ([]HealthStatus, err
 	deps = append(deps, dbStatus)
 
 	// Cache check
-	cacheStatus := HealthStatus{Name: "cache", Status: "up"}
+	cacheStatus := HealthStatus{Name: "cache", Status: "healthy"}
 	if cacheErr := s.cache.Redis.Ping(ctx).Err(); cacheErr != nil {
 		cacheStatus.Status = "unhealthy"
 		if err != nil {

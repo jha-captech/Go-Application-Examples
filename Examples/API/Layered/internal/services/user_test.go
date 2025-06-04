@@ -33,8 +33,8 @@ func TestUsersService_DeepHealthCheck(t *testing.T) {
 		"healthy": {
 			fields: fields{dbErr: nil, cacheErr: nil},
 			wantStatus: []HealthStatus{
-				{Name: "db", Status: "up"},
-				{Name: "cache", Status: "up"},
+				{Name: "db", Status: "healthy"},
+				{Name: "cache", Status: "healthy"},
 			},
 			wantErr:     false,
 			errContains: "",
@@ -43,7 +43,7 @@ func TestUsersService_DeepHealthCheck(t *testing.T) {
 			fields: fields{dbErr: errors.New("db down"), cacheErr: nil},
 			wantStatus: []HealthStatus{
 				{Name: "db", Status: "unhealthy"},
-				{Name: "cache", Status: "up"},
+				{Name: "cache", Status: "healthy"},
 			},
 			wantErr:     true,
 			errContains: "failed to ping database",
@@ -51,7 +51,7 @@ func TestUsersService_DeepHealthCheck(t *testing.T) {
 		"cache ping error": {
 			fields: fields{dbErr: nil, cacheErr: errors.New("cache down")},
 			wantStatus: []HealthStatus{
-				{Name: "db", Status: "up"},
+				{Name: "db", Status: "healthy"},
 				{Name: "cache", Status: "unhealthy"},
 			},
 			wantErr:     true,

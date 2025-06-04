@@ -24,6 +24,7 @@ type Config struct {
 	CacheDB         int        `env:"CACHE_DB,required"`
 	CachePassword   string     `env:"CACHE_PASSWORD,required"`
 	CacheExpiration int        `env:"CACHE_EXPIRATION,required"`
+	SwaggerEnabled  bool       `env:"SWAGGER_ENABLED" envDefault:"false"`
 }
 
 // New loads configuration from environment variables and a .env file, and returns a

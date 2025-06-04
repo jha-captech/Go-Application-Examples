@@ -25,23 +25,23 @@ func TestHandleHealthCheck(t *testing.T) {
 	}{
 		"healthy": {
 			mockStatus: []services.HealthStatus{
-				{Name: "db", Status: "up"},
-				{Name: "cache", Status: "up"},
+				{Name: "db", Status: "healthy"},
+				{Name: "cache", Status: "healthy"},
 			},
 			mockErr:    nil,
 			wantStatus: http.StatusOK,
 			wantResponse: healthResponse{
-				Status: "up",
+				Status: "healthy",
 				HealthDetails: []services.HealthStatus{
-					{Name: "db", Status: "up"},
-					{Name: "cache", Status: "up"},
+					{Name: "db", Status: "healthy"},
+					{Name: "cache", Status: "healthy"},
 				},
 			},
 		},
 		"db unhealthy": {
 			mockStatus: []services.HealthStatus{
 				{Name: "db", Status: "unhealthy"},
-				{Name: "cache", Status: "up"},
+				{Name: "cache", Status: "healthy"},
 			},
 			mockErr:    errors.New("db down"),
 			wantStatus: http.StatusInternalServerError,
@@ -49,13 +49,13 @@ func TestHandleHealthCheck(t *testing.T) {
 				Status: "unhealthy",
 				HealthDetails: []services.HealthStatus{
 					{Name: "db", Status: "unhealthy"},
-					{Name: "cache", Status: "up"},
+					{Name: "cache", Status: "healthy"},
 				},
 			},
 		},
 		"cache unhealthy": {
 			mockStatus: []services.HealthStatus{
-				{Name: "db", Status: "up"},
+				{Name: "db", Status: "healthy"},
 				{Name: "cache", Status: "unhealthy"},
 			},
 			mockErr:    errors.New("cache down"),
@@ -63,7 +63,7 @@ func TestHandleHealthCheck(t *testing.T) {
 			wantResponse: healthResponse{
 				Status: "unhealthy",
 				HealthDetails: []services.HealthStatus{
-					{Name: "db", Status: "up"},
+					{Name: "db", Status: "healthy"},
 					{Name: "cache", Status: "unhealthy"},
 				},
 			},

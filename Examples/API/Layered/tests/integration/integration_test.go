@@ -10,6 +10,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestHealth(t *testing.T) {
+	t.Parallel()
+
+	server, _, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to create test server: %v", err)
+	}
+	t.Cleanup(server.Close)
+
+	resp, err := http.Get(server.URL + "/api/health")
+	if err != nil {
+		t.Fatalf("Failed to make GET request: %v", err)
+	}
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200 OK")
+}
+
 func TestReadUser(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -287,4 +304,22 @@ func TestDeleteUser(t *testing.T) {
 	}
 	err = db.Get(&dbUser, "SELECT id, name, email, password FROM users WHERE id = ?", 2)
 	assert.Error(t, err, "Expected error when querying deleted user")
+}
+
+func TestWildcard(t *testing.T) {
+	t.Parallel()
+
+	server, _, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to create test server: %v", err)
+	}
+	t.Cleanup(server.Close)
+
+	resp, err := http.Get(server.URL + "/api/wildcard/test")
+	if err != nil {
+		t.Fatalf("Failed to make GET request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode, "Expected status code 404 Not Found")
 }

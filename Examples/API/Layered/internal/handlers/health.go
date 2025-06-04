@@ -35,27 +35,34 @@ func HandleHealthCheck(logger *slog.Logger, userHealth healthChecker) http.Handl
 	const name = "handlers.HandleHealthCheck"
 	logger = logger.With(slog.String("func", name))
 
+	const (
+		healthStatus    = "healthy"
+		unhealthyStatus = "unhealthy"
+	)
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		const upStatus = "up"
 		ctx, span := tracer.Start(r.Context(), name)
 		defer span.End()
+
 		logger.InfoContext(ctx, "health check called")
 
-		checks, err := userHealth.DeepHealthCheck(ctx)
-		status := upStatus
+		status := healthStatus
 		code := http.StatusOK
-		for _, check := range checks {
-			if check.Status != upStatus {
-				status = "unhealthy"
-				code = http.StatusInternalServerError
 
-				break
-			}
-		}
+		checks, err := userHealth.DeepHealthCheck(ctx)
 		if err != nil {
 			logger.ErrorContext(ctx, "health check failed", slog.String("error", err.Error()))
 			span.SetStatus(codes.Error, "health check failed")
 			span.RecordError(err)
+		}
+
+		for _, check := range checks {
+			if check.Status != healthStatus {
+				status = unhealthyStatus
+				code = http.StatusInternalServerError
+
+				break
+			}
 		}
 
 		_ = encodeResponseJSON(

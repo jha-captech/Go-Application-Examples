@@ -90,7 +90,7 @@ func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 	mux := telemetry.InstrumentServeMux(http.NewServeMux())
 
 	// Add our routes to the mux
-	routes.AddRoutes(mux, logger, usersService)
+	routes.AddRoutes(mux, logger, usersService, false)
 
 	// Create handler and wrap in middleware
 	wrappedMux := middleware.WrapHandler(

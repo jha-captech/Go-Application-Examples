@@ -19,6 +19,7 @@
 │   ├── routes/
 │   │   └── routes.go              # Registers all HTTP routes and connects handlers to endpoints
 │   ├── handlers/
+│   │   ├── catch_all.go           # Handles any unmatched routes/methods with a 404
 │   │   ├── handlers.go            # Handles requests and responses
 │   │   ├── response.go            # Response DTOs and output formatting
 │   │   ├── read_user.go           # Handler: Get a user by ID (GET /user/{id})
