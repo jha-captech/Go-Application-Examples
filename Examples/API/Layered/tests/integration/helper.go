@@ -19,6 +19,29 @@ import (
 	"example.com/examples/api/layered/internal/telemetry"
 )
 
+type TestRedis struct{}
+
+func (r *TestRedis) Set(
+	ctx context.Context,
+	key string,
+	value any,
+	exp time.Duration,
+) *redis.StatusCmd {
+	return redis.NewStatusCmd(ctx, "OK")
+}
+
+func (r *TestRedis) Get(ctx context.Context, key string) *redis.StringCmd {
+	return redis.NewStringCmd(ctx, redis.Nil)
+}
+
+func (r *TestRedis) Del(ctx context.Context, keys ...string) *redis.IntCmd {
+	return redis.NewIntCmd(ctx, int64(len(keys)))
+}
+
+func (r *TestRedis) Ping(ctx context.Context) *redis.StatusCmd {
+	return redis.NewStatusCmd(ctx, "OK")
+}
+
 // NewTestDB returns an in-memory SQLite DB with a users table and some test data.
 func newTestDB() (*sqlx.DB, error) {
 	db, err := sqlx.Open("sqlite3", ":memory:")
@@ -46,29 +69,6 @@ func newTestDB() (*sqlx.DB, error) {
 	}
 
 	return db, nil
-}
-
-type TestRedis struct{}
-
-func (r *TestRedis) Set(
-	ctx context.Context,
-	key string,
-	value any,
-	exp time.Duration,
-) *redis.StatusCmd {
-	return redis.NewStatusCmd(ctx, "OK")
-}
-
-func (r *TestRedis) Get(ctx context.Context, key string) *redis.StringCmd {
-	return redis.NewStringCmd(ctx, redis.Nil)
-}
-
-func (r *TestRedis) Del(ctx context.Context, keys ...string) *redis.IntCmd {
-	return redis.NewIntCmd(ctx, int64(len(keys)))
-}
-
-func (r *TestRedis) Ping(ctx context.Context) *redis.StatusCmd {
-	return redis.NewStatusCmd(ctx, "OK")
 }
 
 func newTestServer() (*httptest.Server, *sqlx.DB, error) {

@@ -19,7 +19,7 @@ type Handler struct {
 	options handlerOptions
 }
 
-func WithAtterFunc(f AttrFunc) Option {
+func WithAttrFunc(f AttrFunc) Option {
 	return func(options *handlerOptions) {
 		options.slogAttrFuncs = append(options.slogAttrFuncs, f)
 	}

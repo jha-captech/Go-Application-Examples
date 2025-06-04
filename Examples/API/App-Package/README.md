@@ -131,7 +131,7 @@ brew install go-task/tap/go-task
 All other dependencies can be installed with:
 
 ```bash
-task setup:deps
+task deps
 ```
 
 ### Run the Application
