@@ -13,7 +13,7 @@ import (
 // userReader represents a type capable of reading a user from storage and
 // returning it or an error.
 type usersLister interface {
-	ListUsers(ctx context.Context, name string) ([]models.User, error)
+	ListUsers(ctx context.Context) ([]models.User, error)
 }
 
 // listUsersResponse represents the response for listing users.
@@ -23,17 +23,16 @@ type listUsersResponse struct {
 
 // HandleListUsers handles the listing of all users.
 //
-// @Summary		List Users
-// @Description	List All Users
-// @Tags		user
-// @Accept		json
-// @Produce		json
-// @Param		name	query		string	false	"query param"
-// @Success		200		{array}		models.User
-// @Failure		400		{object}	string
-// @Failure		404		{object}	string
-// @Failure		500		{object}	string
-// @Router		/user  [GET]
+//	@Summary		List Users
+//	@Description	List All Users
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{array}		models.User
+//	@Failure		400	{object}	string
+//	@Failure		404	{object}	string
+//	@Failure		500	{object}	string
+//	@Router			/user  [GET]
 func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerFunc {
 	const name = "handlers.HandleListUsers"
 	logger = logger.With(slog.String("func", name))
@@ -42,10 +41,8 @@ func HandleListUsers(logger *slog.Logger, usersLister usersLister) http.HandlerF
 		ctx, span := tracer.Start(r.Context(), name)
 		defer span.End()
 
-		name := r.URL.Query().Get("name")
-
 		// Read the user
-		users, err := usersLister.ListUsers(ctx, name)
+		users, err := usersLister.ListUsers(ctx)
 		if err != nil {
 			logger.ErrorContext(
 				ctx,

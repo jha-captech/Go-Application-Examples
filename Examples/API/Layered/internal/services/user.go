@@ -269,7 +269,7 @@ func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
 
 // ListUsers attempts to list all users in the database. A slice of models.User
 // or an error is returned.
-func (s *UsersService) ListUsers(ctx context.Context, name string) ([]models.User, error) {
+func (s *UsersService) ListUsers(ctx context.Context) ([]models.User, error) {
 	logger := s.logger.With(slog.String("func", "services.UsersService.ListUsers"))
 	logger.DebugContext(ctx, "Listing users")
 	var users []models.User
@@ -283,9 +283,7 @@ func (s *UsersService) ListUsers(ctx context.Context, name string) ([]models.Use
 		       email,
 		       password
 		FROM users
-		WHERE name = $1::text
         `,
-		name,
 	)
 	if err != nil {
 		return nil, fmt.Errorf(

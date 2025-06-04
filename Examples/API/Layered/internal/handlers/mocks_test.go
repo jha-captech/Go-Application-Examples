@@ -232,7 +232,7 @@ var _ usersLister = &moqusersLister{}
 //
 //		// make and configure a mocked usersLister
 //		mockedusersLister := &moqusersLister{
-//			ListUsersFunc: func(ctx context.Context, name string) ([]models.User, error) {
+//			ListUsersFunc: func(ctx context.Context) ([]models.User, error) {
 //				panic("mock out the ListUsers method")
 //			},
 //		}
@@ -243,7 +243,7 @@ var _ usersLister = &moqusersLister{}
 //	}
 type moqusersLister struct {
 	// ListUsersFunc mocks the ListUsers method.
-	ListUsersFunc func(ctx context.Context, name string) ([]models.User, error)
+	ListUsersFunc func(ctx context.Context) ([]models.User, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -251,29 +251,25 @@ type moqusersLister struct {
 		ListUsers []struct {
 			// Ctx is the ctx argument value.
 			Ctx context.Context
-			// Name is the name argument value.
-			Name string
 		}
 	}
 	lockListUsers sync.RWMutex
 }
 
 // ListUsers calls ListUsersFunc.
-func (mock *moqusersLister) ListUsers(ctx context.Context, name string) ([]models.User, error) {
+func (mock *moqusersLister) ListUsers(ctx context.Context) ([]models.User, error) {
 	if mock.ListUsersFunc == nil {
 		panic("moqusersLister.ListUsersFunc: method is nil but usersLister.ListUsers was just called")
 	}
 	callInfo := struct {
-		Ctx  context.Context
-		Name string
+		Ctx context.Context
 	}{
-		Ctx:  ctx,
-		Name: name,
+		Ctx: ctx,
 	}
 	mock.lockListUsers.Lock()
 	mock.calls.ListUsers = append(mock.calls.ListUsers, callInfo)
 	mock.lockListUsers.Unlock()
-	return mock.ListUsersFunc(ctx, name)
+	return mock.ListUsersFunc(ctx)
 }
 
 // ListUsersCalls gets all the calls that were made to ListUsers.
@@ -281,12 +277,10 @@ func (mock *moqusersLister) ListUsers(ctx context.Context, name string) ([]model
 //
 //	len(mockedusersLister.ListUsersCalls())
 func (mock *moqusersLister) ListUsersCalls() []struct {
-	Ctx  context.Context
-	Name string
+	Ctx context.Context
 } {
 	var calls []struct {
-		Ctx  context.Context
-		Name string
+		Ctx context.Context
 	}
 	mock.lockListUsers.RLock()
 	calls = mock.calls.ListUsers

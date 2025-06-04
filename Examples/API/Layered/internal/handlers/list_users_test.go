@@ -42,7 +42,7 @@ func TestHandleListUser(t *testing.T) {
 				logger := slog.Default()
 
 				mockedUserLister := &moqusersLister{
-					ListUsersFunc: func(ctx context.Context, filter string) ([]models.User, error) {
+					ListUsersFunc: func(ctx context.Context) ([]models.User, error) {
 						return tc.wantBody, nil
 					},
 				}

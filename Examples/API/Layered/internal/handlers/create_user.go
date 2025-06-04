@@ -20,17 +20,17 @@ type userCreator interface {
 
 // HandleCreateUser handles the creation of a new user.
 //
-// @Summary		Create User
-// @Description	Creates a User
-// @Tags		user
-// @Accept		json
-// @Produce		json
-// @Param		request	body		UserRequest	true	"User to Create"
-// @Success		200		{object}	uint
-// @Failure		400		{object}	string
-// @Failure		404		{object}	string
-// @Failure		500		{object}	string
-// @Router		/user  [POST]
+//	@Summary		Create User
+//	@Description	Creates a User
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		UserRequest	true	"User to Create"
+//	@Success		201		{object}	uint
+//	@Failure		400		{object}	string
+//	@Failure		404		{object}	string
+//	@Failure		500		{object}	string
+//	@Router			/user  [POST]
 func HandleCreateUser(logger *slog.Logger, userCreator userCreator) http.HandlerFunc {
 	const name = "handlers.HandleCreateUser"
 	logger = logger.With(slog.String("func", name))

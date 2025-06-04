@@ -191,7 +191,6 @@ func TestUsersService_ListUsers(t *testing.T) {
 				AddRow(2, "jane", "jane@me.com", "pwd5678!"),
 
 			mockError: nil,
-			input:     "",
 			expectedOutput: []models.User{
 				{
 					ID:       1,
@@ -215,7 +214,6 @@ func TestUsersService_ListUsers(t *testing.T) {
 				AddRow(2, "jane", "jane@me.com", "pwd5678!"),
 
 			mockError: nil,
-			input:     "jane",
 			expectedOutput: []models.User{
 				{
 					ID:       2,
@@ -232,7 +230,6 @@ func TestUsersService_ListUsers(t *testing.T) {
 			mockOutput:    sqlmock.NewRows([]string{"id", "name", "email", "password"}),
 
 			mockError:      nil,
-			input:          "joe",
 			expectedOutput: []models.User{},
 			expectedError:  nil,
 		},
@@ -258,7 +255,6 @@ func TestUsersService_ListUsers(t *testing.T) {
 							email,
 							password
 						FROM users
-						WHERE name = $1::text
                     `)).
 					WillReturnRows(tc.mockOutput).
 					WillReturnError(tc.mockError)
@@ -267,7 +263,7 @@ func TestUsersService_ListUsers(t *testing.T) {
 			rdb, _ := redismock.NewClientMock()
 			userService := NewUsersService(logger, sqlx.NewDb(db, "sqlmock"), rdb, 0)
 
-			outputs, err := userService.ListUsers(t.Context(), tc.input)
+			outputs, err := userService.ListUsers(t.Context())
 			assert.ErrorIs(t, err, tc.expectedError)
 
 			for i, output := range outputs {

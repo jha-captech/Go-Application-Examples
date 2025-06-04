@@ -18,17 +18,17 @@ type userDeleter interface {
 
 // HandleDeleteUser handles the deletion of a user by ID.
 //
-// @Summary		Delete User
-// @Description	Delete User by ID
-// @Tags		user
-// @Accept		json
-// @Produce		json
-// @Param		id	path	string	true	"User ID"
-// @Success		204
-// @Failure		400	{object}	string
-// @Failure		404	{object}	string
-// @Failure		500	{object}	string
-// @Router		/user/{id}  [DELETE]
+//	@Summary		Delete User
+//	@Description	Delete User by ID
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path	string	true	"User ID"
+//	@Success		204
+//	@Failure		400	{object}	string
+//	@Failure		404	{object}	string
+//	@Failure		500	{object}	string
+//	@Router			/user/{id}  [DELETE]
 func HandleDeleteUser(logger *slog.Logger, userDeleter userDeleter) http.HandlerFunc {
 	const name = "handlers.HandleDeleteUser"
 	logger = logger.With(slog.String("func", name))

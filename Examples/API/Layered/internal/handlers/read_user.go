@@ -20,17 +20,17 @@ type userReader interface {
 
 // HandleReadUser handles the reading of a user by ID.
 //
-// @Summary		Read User
-// @Description	Read User by ID
-// @Tags		user
-// @Accept		json
-// @Produce		json
-// @Param		id	path		string	true	"User ID"
-// @Success		200	{object}	models.User
-// @Failure		400	{object}	string
-// @Failure		404	{object}	string
-// @Failure		500	{object}	string
-// @Router		/user/{id}  [GET]
+//	@Summary		Read User
+//	@Description	Read User by ID
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"User ID"
+//	@Success		200	{object}	models.User
+//	@Failure		400	{object}	string
+//	@Failure		404	{object}	string
+//	@Failure		500	{object}	string
+//	@Router			/user/{id}  [GET]
 func HandleReadUser(logger *slog.Logger, userReader userReader) http.HandlerFunc {
 	const name = "handlers.HandleReadUser"
 	logger = logger.With(slog.String("func", name))

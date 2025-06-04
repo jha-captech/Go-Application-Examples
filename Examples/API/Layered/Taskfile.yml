@@ -66,6 +66,13 @@ tasks:
       - go test -count=1 ./...
     silent: true
 
+  docs:generate:
+    desc: Generate swagger documentation using GoDoc
+    cmds:
+      - swag init -g internal/routes/routes.go --output "cmd/api/docs"
+      - swag fmt
+    silent: true
+
   mock:generate:
     desc: Generate mocks for interfaces in the project
     cmds:
