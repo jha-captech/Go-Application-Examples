@@ -159,7 +159,13 @@ task deps
 - Run Unit and Integration Tests
 
   ```bash
-  task test
+  task test:unit
+  ```
+
+- Run Integration Tests
+
+  ```bash
+  task test:integration
   ```
 
 - Format Go Files
