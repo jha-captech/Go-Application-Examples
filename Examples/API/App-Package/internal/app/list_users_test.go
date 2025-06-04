@@ -14,6 +14,7 @@ import (
 )
 
 func TestListUsers(t *testing.T) {
+	t.Parallel()
 	type mockDB struct {
 		mockRows  *sqlmock.Rows
 		mockError error
@@ -22,7 +23,7 @@ func TestListUsers(t *testing.T) {
 	testcases := map[string]struct {
 		mockDB
 		wantStatus int
-		wantUsers  []User
+		wantUsers  []userResponse
 	}{
 		"success": {
 			mockDB: mockDB{
@@ -32,9 +33,9 @@ func TestListUsers(t *testing.T) {
 				mockError: nil,
 			},
 			wantStatus: http.StatusOK,
-			wantUsers: []User{
-				{ID: 1, Name: "Alice", Email: "alice@example.com", Password: "pw1"},
-				{ID: 2, Name: "Bob", Email: "bob@example.com", Password: "pw2"},
+			wantUsers: []userResponse{
+				{ID: 1, Name: "Alice", Email: "alice@example.com"},
+				{ID: 2, Name: "Bob", Email: "bob@example.com"},
 			},
 		},
 		"empty": {
@@ -43,7 +44,7 @@ func TestListUsers(t *testing.T) {
 				mockError: nil,
 			},
 			wantStatus: http.StatusOK,
-			wantUsers:  []User{},
+			wantUsers:  []userResponse{},
 		},
 		"scan_error": {
 			mockDB: mockDB{
@@ -73,6 +74,7 @@ func TestListUsers(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
+
 			defer db.Close()
 
 			sqlxDB := sqlx.NewDb(db, "pgx")
@@ -84,9 +86,10 @@ func TestListUsers(t *testing.T) {
 			if tc.mockRows != nil {
 				expect.WillReturnRows(tc.mockRows)
 			}
+
 			expect.WillReturnError(tc.mockError)
 
-			req := httptest.NewRequest("GET", "/user", nil)
+			req := httptest.NewRequest(http.MethodGet, "/user", nil)
 			rec := httptest.NewRecorder()
 			handler := listUsers(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
@@ -96,13 +99,15 @@ func TestListUsers(t *testing.T) {
 			}
 
 			if tc.wantStatus == http.StatusOK {
-				var gotUsers []User
+				var gotUsers []userResponse
 				if err := json.NewDecoder(rec.Body).Decode(&gotUsers); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}
+
 				if len(gotUsers) != len(tc.wantUsers) {
 					t.Errorf("want %d users, got %d", len(tc.wantUsers), len(gotUsers))
 				}
+
 				for i := range gotUsers {
 					if gotUsers[i] != tc.wantUsers[i] {
 						t.Errorf("want user %+v, got %+v", tc.wantUsers[i], gotUsers[i])

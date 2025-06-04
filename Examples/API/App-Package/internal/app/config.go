@@ -34,7 +34,7 @@ func NewConfig() (Config, error) {
 	// config struct and validate them returning any errors.
 	cfg, err := env.ParseAs[Config]()
 	if err != nil {
-		return Config{}, fmt.Errorf("[in config.New] failed to parse config: %w", err)
+		return Config{}, fmt.Errorf("[in config.NewConfig] failed to parse config: %w", err)
 	}
 
 	return cfg, nil

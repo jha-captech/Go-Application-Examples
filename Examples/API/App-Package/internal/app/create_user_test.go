@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"log/slog"
+	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"regexp"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestCreateUser(t *testing.T) {
+	t.Parallel()
 	type mockDB struct {
 		mockCalled    bool
 		mockInputArgs []driver.Value
@@ -26,7 +28,7 @@ func TestCreateUser(t *testing.T) {
 		mockDB
 		inputJSON  string
 		wantStatus int
-		wantUser   User
+		wantUser   userResponse
 	}{
 		"success": {
 			mockDB: mockDB{
@@ -37,11 +39,10 @@ func TestCreateUser(t *testing.T) {
 			},
 			inputJSON:  `{"name":"Alice","email":"alice@example.com","password":"supersecret"}`,
 			wantStatus: 201,
-			wantUser: User{
-				ID:       1,
-				Name:     "Alice",
-				Email:    "alice@example.com",
-				Password: "supersecret",
+			wantUser: userResponse{
+				ID:    1,
+				Name:  "Alice",
+				Email: "alice@example.com",
 			},
 		},
 		"invalid_json": {
@@ -53,7 +54,7 @@ func TestCreateUser(t *testing.T) {
 			},
 			inputJSON:  `{"name": "Bob", "email": "bob@example.com", "password": password123}`,
 			wantStatus: 400,
-			wantUser:   User{},
+			wantUser:   userResponse{},
 		},
 		"request_validation_error": {
 			mockDB: mockDB{
@@ -64,7 +65,7 @@ func TestCreateUser(t *testing.T) {
 			},
 			inputJSON:  `{"name": "Bob", "email": "bob@example.com", "password": "pass"}`,
 			wantStatus: 400,
-			wantUser:   User{},
+			wantUser:   userResponse{},
 		},
 		"db_error": {
 			mockDB: mockDB{
@@ -75,7 +76,7 @@ func TestCreateUser(t *testing.T) {
 			},
 			inputJSON:  `{"name":"Bob","email":"bob@example.com","password":"password123"}`,
 			wantStatus: 500,
-			wantUser:   User{},
+			wantUser:   userResponse{},
 		},
 	}
 
@@ -88,6 +89,7 @@ func TestCreateUser(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
+
 			defer db.Close()
 
 			sqlxDB := sqlx.NewDb(db, "pgx")
@@ -104,7 +106,11 @@ func TestCreateUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			req := httptest.NewRequest("POST", "/users", bytes.NewBuffer([]byte(tc.inputJSON)))
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/users",
+				bytes.NewBufferString(tc.inputJSON),
+			)
 			rec := httptest.NewRecorder()
 			handler := createUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
@@ -114,10 +120,11 @@ func TestCreateUser(t *testing.T) {
 			}
 
 			if tc.wantStatus == 201 {
-				var gotUser User
+				var gotUser userResponse
 				if err := json.NewDecoder(rec.Body).Decode(&gotUser); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}
+
 				if !reflect.DeepEqual(gotUser, tc.wantUser) {
 					t.Errorf("want user %+v, got %+v", tc.wantUser, gotUser)
 				}

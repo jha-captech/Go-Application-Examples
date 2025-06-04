@@ -17,11 +17,13 @@ func TestEncodeResponse(t *testing.T) {
 		status int
 		data   any
 	}
+
 	type want struct {
 		status       int
 		body         string
 		bodyContains string
 	}
+
 	tests := map[string]struct {
 		fields fields
 		want   want
@@ -92,30 +94,33 @@ func TestEncodeResponse(t *testing.T) {
 	}
 
 	for name, tc := range tests {
-		tc := tc
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			rec := httptest.NewRecorder()
+		t.Run(
+			name, func(t *testing.T) {
+				t.Parallel()
 
-			encodeResponse(rec, tc.fields.status, tc.fields.data)
+				rec := httptest.NewRecorder()
 
-			res := rec.Result()
-			defer res.Body.Close()
+				encodeResponseJSON(rec, tc.fields.status, tc.fields.data)
 
-			assert.Equal(t, tc.want.status, res.StatusCode)
-			assert.Equal(t, "application/json", res.Header.Get("Content-Type")[:16])
+				res := rec.Result()
+				defer res.Body.Close()
 
-			body := strings.TrimSpace(rec.Body.String())
-			if tc.want.body != "" {
-				// Compare JSON ignoring whitespace
-				var got, want any
-				_ = json.Unmarshal([]byte(body), &got)
-				_ = json.Unmarshal([]byte(tc.want.body), &want)
-				assert.Equal(t, want, got)
-			}
-			if tc.want.bodyContains != "" {
-				assert.Contains(t, body, tc.want.bodyContains)
-			}
-		})
+				assert.Equal(t, tc.want.status, res.StatusCode)
+				assert.Equal(t, "application/json", res.Header.Get("Content-Type")[:16])
+
+				body := strings.TrimSpace(rec.Body.String())
+				if tc.want.body != "" {
+					// Compare JSON ignoring whitespace
+					var got, want any
+					_ = json.Unmarshal([]byte(body), &got)
+					_ = json.Unmarshal([]byte(tc.want.body), &want)
+					assert.Equal(t, want, got)
+				}
+
+				if tc.want.bodyContains != "" {
+					assert.Contains(t, body, tc.want.bodyContains)
+				}
+			},
+		)
 	}
 }

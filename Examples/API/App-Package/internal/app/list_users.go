@@ -7,20 +7,29 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// @Summary		List Users
-// @Description	List all users
-// @Tags			user
-// @Produce		json
-// @Success		200	{array}	User
-// @Failure		500	{object}	string
-// @Router			/user [GET]
+// listUsers is an HTTP handler function that retrieves a list of all users from
+// the database.
+//
+//	@Summary		List Users
+//	@Description	List all users
+//	@Tags			user
+//	@Produce		json
+//	@Success		200			{array}		user
+//	@Failure		500			{object}	problemDetail
+//	@Router			/api/user	[GET]
 func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
+	const funcName = "app.listUsers"
+	logger = logger.With(slog.String("func", funcName))
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
+		logger = logger.With(getTraceIDAsAttr(ctx))
+
 		logger.InfoContext(ctx, "Listing all users")
 
-		var users []User
+		// query db to get all users
+		var users []user
 		err := db.SelectContext(
 			ctx,
 			&users,
@@ -29,27 +38,28 @@ func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
             FROM users
             `,
 		)
-
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query users", slog.String("error", err.Error()))
-			encodeErr := encodeResponse(w, http.StatusInternalServerError, NewInternalServerError())
-			if encodeErr != nil {
-				logger.ErrorContext(
-					ctx,
-					"failed to encode response",
-					slog.String("error", encodeErr.Error()),
-				)
-			}
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
+				Title:   "Internal Server Error",
+				Status:  http.StatusInternalServerError,
+				Detail:  "An unexpected error occurred.",
+				TraceID: getTraceID(ctx),
+			})
+
 			return
 		}
 
-		encodeErr := encodeResponse(w, http.StatusOK, users)
-		if encodeErr != nil {
-			logger.ErrorContext(
-				ctx,
-				"failed to encode response",
-				slog.String("error", encodeErr.Error()),
-			)
+		// Convert []user to []userResponse to exclude password
+		userResponses := make([]userResponse, 0, len(users))
+		for _, u := range users {
+			userResponses = append(userResponses, userResponse{
+				ID:    u.ID,
+				Name:  u.Name,
+				Email: u.Email,
+			})
 		}
+
+		_ = encodeResponseJSON(w, http.StatusOK, userResponses)
 	}
 }

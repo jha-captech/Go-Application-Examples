@@ -17,6 +17,7 @@ import (
 )
 
 func TestUpdateUser(t *testing.T) {
+	t.Parallel()
 	type mockDB struct {
 		mockCalled bool
 		mockArgs   []driver.Value
@@ -29,7 +30,7 @@ func TestUpdateUser(t *testing.T) {
 		id         string
 		body       any
 		wantStatus int
-		wantUser   User
+		wantUser   userResponse
 	}{
 		"success": {
 			mockDB: mockDB{
@@ -40,16 +41,16 @@ func TestUpdateUser(t *testing.T) {
 				mockError: nil,
 			},
 			id:         "1",
-			body:       User{Name: "Alice", Email: "alice@new.com", Password: "password123"},
+			body:       userRequest{Name: "Alice", Email: "alice@new.com", Password: "password123"},
 			wantStatus: http.StatusOK,
-			wantUser:   User{ID: 1, Name: "Alice", Email: "alice@new.com", Password: "password123"},
+			wantUser:   userResponse{ID: 1, Name: "Alice", Email: "alice@new.com"},
 		},
 		"invalid_id": {
 			mockDB: mockDB{
 				mockCalled: false,
 			},
 			id:         "abc",
-			body:       User{Name: "Bob", Email: "bob@new.com", Password: "password123"},
+			body:       userRequest{Name: "Bob", Email: "bob@new.com", Password: "password123"},
 			wantStatus: http.StatusBadRequest,
 		},
 		"validation_error": {
@@ -57,7 +58,7 @@ func TestUpdateUser(t *testing.T) {
 				mockCalled: false,
 			},
 			id:         "1",
-			body:       User{Name: "Bob", Email: "bob@new.com", Password: "pw"},
+			body:       userRequest{Name: "Bob", Email: "bob@new.com", Password: "pw"},
 			wantStatus: http.StatusBadRequest,
 		},
 		"bad_json": {
@@ -76,7 +77,7 @@ func TestUpdateUser(t *testing.T) {
 				mockError:  sql.ErrNoRows,
 			},
 			id:         "3",
-			body:       User{Name: "Carol", Email: "carol@new.com", Password: "password123"},
+			body:       userRequest{Name: "Carol", Email: "carol@new.com", Password: "password123"},
 			wantStatus: http.StatusNotFound,
 		},
 		"db_error": {
@@ -87,7 +88,7 @@ func TestUpdateUser(t *testing.T) {
 				mockError:  errors.New("db error"),
 			},
 			id:         "4",
-			body:       User{Name: "Dave", Email: "dave@new.com", Password: "password123"},
+			body:       userRequest{Name: "Dave", Email: "dave@new.com", Password: "password123"},
 			wantStatus: http.StatusInternalServerError,
 		},
 	}
@@ -101,6 +102,7 @@ func TestUpdateUser(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
+
 			defer db.Close()
 
 			sqlxDB := sqlx.NewDb(db, "pgx")
@@ -115,12 +117,13 @@ func TestUpdateUser(t *testing.T) {
 				if tc.mockRow != nil {
 					expect.WillReturnRows(tc.mockRow)
 				}
+
 				expect.WillReturnError(tc.mockError)
 			}
 
 			var reqBody []byte
 			switch v := tc.body.(type) {
-			case User:
+			case userRequest:
 				reqBody, _ = json.Marshal(v)
 			case string:
 				reqBody = []byte(v)
@@ -128,8 +131,9 @@ func TestUpdateUser(t *testing.T) {
 				reqBody = nil
 			}
 
-			req := httptest.NewRequest("PUT", "/user/"+tc.id, bytes.NewReader(reqBody))
+			req := httptest.NewRequest(http.MethodPut, "/user/"+tc.id, bytes.NewReader(reqBody))
 			req.SetPathValue("id", tc.id)
+
 			rec := httptest.NewRecorder()
 			handler := updateUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
@@ -139,10 +143,11 @@ func TestUpdateUser(t *testing.T) {
 			}
 
 			if tc.wantStatus == http.StatusOK {
-				var gotUser User
+				var gotUser userResponse
 				if err := json.NewDecoder(rec.Body).Decode(&gotUser); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}
+
 				if gotUser != tc.wantUser {
 					t.Errorf("want user %+v, got %+v", tc.wantUser, gotUser)
 				}

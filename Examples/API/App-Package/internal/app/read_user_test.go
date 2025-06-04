@@ -16,6 +16,7 @@ import (
 )
 
 func TestReadUser(t *testing.T) {
+	t.Parallel()
 	type mockDB struct {
 		mockCalled    bool
 		mockInputArgs []driver.Value
@@ -27,7 +28,7 @@ func TestReadUser(t *testing.T) {
 		mockDB
 		id         string
 		wantStatus int
-		wantUser   User
+		wantUser   userResponse
 	}{
 		"success": {
 			mockDB: mockDB{
@@ -39,12 +40,7 @@ func TestReadUser(t *testing.T) {
 			},
 			id:         "1",
 			wantStatus: http.StatusOK,
-			wantUser: User{
-				ID:       1,
-				Name:     "Alice",
-				Email:    "alice@example.com",
-				Password: "supersecret",
-			},
+			wantUser:   userResponse{ID: 1, Name: "Alice", Email: "alice@example.com"},
 		},
 		"invalid_id": {
 			mockDB: mockDB{
@@ -55,7 +51,7 @@ func TestReadUser(t *testing.T) {
 			},
 			id:         "abc",
 			wantStatus: http.StatusBadRequest,
-			wantUser:   User{},
+			wantUser:   userResponse{},
 		},
 		"not_found": {
 			mockDB: mockDB{
@@ -66,7 +62,7 @@ func TestReadUser(t *testing.T) {
 			},
 			id:         "2",
 			wantStatus: http.StatusNotFound,
-			wantUser:   User{},
+			wantUser:   userResponse{},
 		},
 		"db_error": {
 			mockDB: mockDB{
@@ -77,7 +73,7 @@ func TestReadUser(t *testing.T) {
 			},
 			id:         "3",
 			wantStatus: http.StatusInternalServerError,
-			wantUser:   User{},
+			wantUser:   userResponse{},
 		},
 	}
 
@@ -90,6 +86,7 @@ func TestReadUser(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
+
 			defer db.Close()
 
 			sqlxDB := sqlx.NewDb(db, "pgx")
@@ -108,8 +105,9 @@ func TestReadUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			req := httptest.NewRequest("GET", "/user/"+tc.id, nil)
+			req := httptest.NewRequest(http.MethodGet, "/user/"+tc.id, nil)
 			req.SetPathValue("id", tc.id)
+
 			rec := httptest.NewRecorder()
 			handler := readUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
@@ -119,10 +117,11 @@ func TestReadUser(t *testing.T) {
 			}
 
 			if tc.wantStatus == http.StatusOK {
-				var gotUser User
+				var gotUser userResponse
 				if err := json.NewDecoder(rec.Body).Decode(&gotUser); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}
+
 				if gotUser != tc.wantUser {
 					t.Errorf("want user %+v, got %+v", tc.wantUser, gotUser)
 				}
