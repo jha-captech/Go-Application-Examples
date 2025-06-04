@@ -20,7 +20,7 @@ func TestHandleDeleteUser(t *testing.T) {
 		input      models.User
 	}{
 		"happy path": {
-			wantStatus: 200,
+			wantStatus: 204,
 		},
 	}
 	for name, tc := range tests {

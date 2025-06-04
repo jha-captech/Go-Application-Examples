@@ -10,17 +10,25 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// RedisClient is an interface that defines some of the methods used by Redis.
+type RedisClient interface {
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	Get(ctx context.Context, key string) *redis.StringCmd
+	Del(ctx context.Context, keys ...string) *redis.IntCmd
+	Ping(ctx context.Context) *redis.StatusCmd
+}
+
 // Wraps a *redis.Client and provides methods for setting and getting cached values with
 // automatic JSON marshaling/unmarshaling and expiration handling.
 type Client struct {
-	*redis.Client
+	Redis      RedisClient
 	expiration time.Duration
 }
 
 // Constructs a new Client with the given Redis client and default expiration duration.
-func NewClient(client *redis.Client, expiration time.Duration) *Client {
+func NewClient(client RedisClient, expiration time.Duration) *Client {
 	return &Client{
-		Client:     client,
+		Redis:      client,
 		expiration: expiration,
 	}
 }
@@ -35,6 +43,11 @@ type StatusCmd struct {
 	*redis.StatusCmd
 }
 
+// Wraps redis.IntCmd to provide additional helpers for result extraction.
+type IntCmd struct {
+	*redis.IntCmd
+}
+
 // Marshals the given value to JSON and stores it in Redis under the specified key with the
 // configured expiration.
 func (c *Client) SetMarshal(ctx context.Context, key string, value any) error {
@@ -43,7 +56,7 @@ func (c *Client) SetMarshal(ctx context.Context, key string, value any) error {
 		return fmt.Errorf("[in services.Client.Set] failed to marshal value: %w", err)
 	}
 
-	if err = c.Client.Set(ctx, key, jsonData, c.expiration).Err(); err != nil {
+	if err = c.Redis.Set(ctx, key, jsonData, c.expiration).Err(); err != nil {
 		return fmt.Errorf("[in services.Client.Set] failed to set value in cache: %w", err)
 	}
 
@@ -52,8 +65,12 @@ func (c *Client) SetMarshal(ctx context.Context, key string, value any) error {
 
 // Retrieves the value for the given key from Redis, returning a StringCmd wrapper.
 func (c *Client) Get(ctx context.Context, key string) *StringCmd {
-	stringCmd := c.Client.Get(ctx, key)
-	return &StringCmd{StringCmd: stringCmd}
+	return &StringCmd{c.Redis.Get(ctx, key)}
+}
+
+// Deletes the value for the given key from Redis, returning an error if any.
+func (c *Client) Delete(ctx context.Context, key string) error {
+	return c.Redis.Del(ctx, key).Err()
 }
 
 // Returns the string result, a boolean indicating existence, and an error if any.

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/redis/go-redis/v9"
 
 	"example.com/examples/api/layered/internal/models"
 )
@@ -27,7 +26,7 @@ type UsersService struct {
 func NewUsersService(
 	logger *slog.Logger,
 	db *sqlx.DB,
-	rdb *redis.Client,
+	rdb RedisClient,
 	expiration time.Duration,
 ) *UsersService {
 	return &UsersService{
@@ -64,7 +63,7 @@ func (s *UsersService) DeepHealthCheck(ctx context.Context) ([]HealthStatus, err
 
 	// Cache check
 	cacheStatus := HealthStatus{Name: "cache", Status: "up"}
-	if cacheErr := s.cache.Client.Ping(ctx).Err(); cacheErr != nil {
+	if cacheErr := s.cache.Redis.Ping(ctx).Err(); cacheErr != nil {
 		cacheStatus.Status = "unhealthy"
 		if err != nil {
 			err = fmt.Errorf(
@@ -257,7 +256,7 @@ func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
 
 	// Remove the user from the cache
 	logger.DebugContext(ctx, "Removing user from cache", "id", id)
-	if err = s.cache.Del(ctx, strconv.FormatUint(id, 10)).Err(); err != nil {
+	if err = s.cache.Delete(ctx, strconv.FormatUint(id, 10)); err != nil {
 		return fmt.Errorf(
 			"[in services.UsersService.DeleteUser] failed to remove user from cache: %w",
 			err,
