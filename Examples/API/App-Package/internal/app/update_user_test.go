@@ -17,6 +17,7 @@ import (
 )
 
 func TestUpdateUser(t *testing.T) {
+	t.Parallel()
 	type mockDB struct {
 		mockCalled bool
 		mockArgs   []driver.Value
@@ -101,6 +102,7 @@ func TestUpdateUser(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
+
 			defer db.Close()
 
 			sqlxDB := sqlx.NewDb(db, "pgx")
@@ -115,6 +117,7 @@ func TestUpdateUser(t *testing.T) {
 				if tc.mockRow != nil {
 					expect.WillReturnRows(tc.mockRow)
 				}
+
 				expect.WillReturnError(tc.mockError)
 			}
 
@@ -128,8 +131,9 @@ func TestUpdateUser(t *testing.T) {
 				reqBody = nil
 			}
 
-			req := httptest.NewRequest("PUT", "/user/"+tc.id, bytes.NewReader(reqBody))
+			req := httptest.NewRequest(http.MethodPut, "/user/"+tc.id, bytes.NewReader(reqBody))
 			req.SetPathValue("id", tc.id)
+
 			rec := httptest.NewRecorder()
 			handler := updateUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)
@@ -143,6 +147,7 @@ func TestUpdateUser(t *testing.T) {
 				if err := json.NewDecoder(rec.Body).Decode(&gotUser); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}
+
 				if gotUser != tc.wantUser {
 					t.Errorf("want user %+v, got %+v", tc.wantUser, gotUser)
 				}

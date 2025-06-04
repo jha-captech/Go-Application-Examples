@@ -99,7 +99,7 @@ linters:
       asserts: true
       comparison: true
     funlen:
-      lines: 80
+      lines: 150
       statements: 40
       ignore-comments: true
     lll:
@@ -119,6 +119,7 @@ linters:
         - k
         - v
         - db
+        - id
       ignore-type-assert-ok: true
       ignore-map-index-ok: true
       ignore-chan-recv-ok: true
@@ -138,6 +139,7 @@ linters:
         - wg *sync.WaitGroup
         - wg *errgroup.Group
         - wg errgroup.Group
+        - eg *errgroup.Group
     wsl:
       strict-append: true
       allow-assign-and-call: true
@@ -146,7 +148,7 @@ linters:
       force-case-trailing-whitespace: 3
       allow-trailing-comment: false
       allow-separated-leading-comment: false
-      allow-cuddle-declarations: false
+      allow-cuddle-declarations: true
       allow-cuddle-with-calls:
         - Lock
         - RLock

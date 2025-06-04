@@ -36,12 +36,14 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"failed to decode request",
 				slog.String("error", err.Error()),
 			)
+
 			_ = encodeResponseJSON(w, http.StatusBadRequest, problemDetail{
 				Title:   "Bad Request",
-				Status:  400,
+				Status:  http.StatusBadRequest,
 				Detail:  "Invalid request body.",
 				TraceID: getTraceID(ctx),
 			})
+
 			return
 		}
 
@@ -51,15 +53,17 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
+
 			_ = encodeResponseJSON(w, http.StatusBadRequest, problemDetailValidation{
 				problemDetail: problemDetail{
 					Title:   "Bad Request",
-					Status:  400,
+					Status:  http.StatusBadRequest,
 					Detail:  "The request contains invalid parameters.",
 					TraceID: getTraceID(ctx),
 				},
 				InvalidParams: problems,
 			})
+
 			return
 		}
 
@@ -87,10 +91,11 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			logger.ErrorContext(ctx, "failed to insert user", slog.String("error", err.Error()))
 			_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
 				Title:   "Internal Server Error",
-				Status:  500,
+				Status:  http.StatusInternalServerError,
 				Detail:  "An unexpected error occurred.",
 				TraceID: getTraceID(ctx),
 			})
+
 			return
 		}
 

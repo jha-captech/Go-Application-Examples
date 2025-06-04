@@ -43,6 +43,7 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
+
 			_ = encodeResponseJSON(w, http.StatusBadRequest, problemDetail{
 				Title:   "Bad Request",
 				Status:  http.StatusBadRequest,
@@ -56,10 +57,10 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		// read the user
 		logger.InfoContext(ctx, "Reading user", slog.Int("id", id))
 
-		var u user
+		var user user
 		err = db.GetContext(
 			ctx,
-			&u,
+			&user,
 			`
 			SELECT id,
 				name,
@@ -70,7 +71,6 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			`,
 			id,
 		)
-
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
@@ -80,17 +80,19 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 					Detail:  fmt.Sprintf("User with ID %d not found", id),
 					TraceID: getTraceID(ctx),
 				})
-				
+
 				return
+
 			default:
 				logger.ErrorContext(
 					ctx,
 					"failed to read user",
 					slog.String("error", err.Error()),
 				)
+
 				_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
 					Title:   "Internal Server Error",
-					Status:  500,
+					Status:  http.StatusInternalServerError,
 					Detail:  "An unexpected error occurred.",
 					TraceID: getTraceID(ctx),
 				})
@@ -101,9 +103,9 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 
 		// respond with userResponse (no password)
 		resp := userResponse{
-			ID:    u.ID,
-			Name:  u.Name,
-			Email: u.Email,
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
 		}
 		_ = encodeResponseJSON(w, http.StatusOK, resp)
 	}

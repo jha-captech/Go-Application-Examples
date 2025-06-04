@@ -40,13 +40,14 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
+
 			_ = encodeResponseJSON(w, http.StatusBadRequest, problemDetail{
 				Title:   "Invalid ID",
 				Status:  http.StatusBadRequest,
 				Detail:  "The provided ID is not a valid integer.",
 				TraceID: getTraceID(ctx),
-			},
-			)
+			})
+
 			return
 		}
 
@@ -58,7 +59,7 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			logger.ErrorContext(ctx, "failed to delete user", slog.String("error", err.Error()))
 			_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
 				Title:   "Internal Server Error",
-				Status:  500,
+				Status:  http.StatusInternalServerError,
 				Detail:  "An unexpected error occurred.",
 				TraceID: getTraceID(ctx),
 			})
@@ -73,9 +74,10 @@ func deleteUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"failed to get rows affected",
 				slog.String("error", err.Error()),
 			)
+
 			_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
 				Title:   "Internal Server Error",
-				Status:  500,
+				Status:  http.StatusInternalServerError,
 				Detail:  "An unexpected error occurred.",
 				TraceID: getTraceID(ctx),
 			})

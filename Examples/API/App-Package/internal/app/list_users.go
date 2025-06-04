@@ -42,11 +42,11 @@ func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			logger.ErrorContext(ctx, "failed to query users", slog.String("error", err.Error()))
 			_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
 				Title:   "Internal Server Error",
-				Status:  500,
+				Status:  http.StatusInternalServerError,
 				Detail:  "An unexpected error occurred.",
 				TraceID: getTraceID(ctx),
 			})
-			
+
 			return
 		}
 

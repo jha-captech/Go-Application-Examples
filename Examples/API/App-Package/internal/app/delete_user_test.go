@@ -14,6 +14,7 @@ import (
 )
 
 func TestDeleteUser(t *testing.T) {
+	t.Parallel()
 	type mockDB struct {
 		mockCalled    bool
 		mockInputArgs []driver.Value
@@ -77,6 +78,7 @@ func TestDeleteUser(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
+
 			defer db.Close()
 
 			sqlxDB := sqlx.NewDb(db, "pgx")
@@ -88,8 +90,9 @@ func TestDeleteUser(t *testing.T) {
 					WillReturnError(tc.mockError)
 			}
 
-			req := httptest.NewRequest("DELETE", "/user/"+tc.id, nil)
+			req := httptest.NewRequest(http.MethodDelete, "/user/"+tc.id, nil)
 			req.SetPathValue("id", tc.id)
+
 			rec := httptest.NewRecorder()
 			handler := deleteUser(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)

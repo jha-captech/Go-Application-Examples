@@ -14,6 +14,7 @@ import (
 )
 
 func TestListUsers(t *testing.T) {
+	t.Parallel()
 	type mockDB struct {
 		mockRows  *sqlmock.Rows
 		mockError error
@@ -73,6 +74,7 @@ func TestListUsers(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error when opening stub db: %v", err)
 			}
+
 			defer db.Close()
 
 			sqlxDB := sqlx.NewDb(db, "pgx")
@@ -84,9 +86,10 @@ func TestListUsers(t *testing.T) {
 			if tc.mockRows != nil {
 				expect.WillReturnRows(tc.mockRows)
 			}
+
 			expect.WillReturnError(tc.mockError)
 
-			req := httptest.NewRequest("GET", "/user", nil)
+			req := httptest.NewRequest(http.MethodGet, "/user", nil)
 			rec := httptest.NewRecorder()
 			handler := listUsers(logger, sqlxDB)
 			handler.ServeHTTP(rec, req)

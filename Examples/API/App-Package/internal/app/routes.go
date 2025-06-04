@@ -4,9 +4,11 @@ import (
 	"log/slog"
 	"net/http"
 
-	_ "example.com/examples/api/app-package/cmd/api/docs"
 	"github.com/jmoiron/sqlx"
+
 	httpSwagger "github.com/swaggo/http-swagger/v2"
+
+	_ "example.com/examples/api/app-package/cmd/api/docs" // import for Swagger docs generation
 )
 
 // addRoutes registers all HTTP API routes for user operations to the provided ServeMux.
