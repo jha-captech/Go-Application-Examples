@@ -162,10 +162,16 @@ task setup:deps
 
 ### Working Locally
 
-- Run Unit and Integration Tests
+- Run Unit  Tests
 
   ```bash
-  task test
+  task test:unit
+  ```
+
+- Run Integration Tests
+
+  ```bash
+  task test:integration
   ```
 
 - Format Go Files

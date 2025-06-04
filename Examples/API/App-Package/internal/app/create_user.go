@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -51,7 +50,7 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			logger.ErrorContext(
 				ctx,
 				"Validation error",
-				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
+				slog.Any("validation_errors", problems),
 			)
 
 			_ = encodeResponseJSON(w, http.StatusBadRequest, problemDetailValidation{
@@ -87,6 +86,7 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			req.Email,
 			req.Password,
 		)
+
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to insert user", slog.String("error", err.Error()))
 			_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
@@ -107,11 +107,10 @@ func createUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		)
 
 		// respond with created user (without password)
-		resp := userResponse{
+		_ = encodeResponseJSON(w, http.StatusCreated, userResponse{
 			ID:    id,
 			Name:  req.Name,
 			Email: req.Email,
-		}
-		_ = encodeResponseJSON(w, http.StatusCreated, resp)
+		})
 	}
 }

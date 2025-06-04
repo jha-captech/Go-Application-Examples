@@ -1,3 +1,39 @@
-### GET hello world
-GET {{host}}/hello-world
+@host = http://localhost:8080/api
+
+### Health Check
+GET {{host}}/health
+Accept: application/json
+
+### List All Users
+GET {{host}}/user
+Accept: application/json
+
+### Create User
+POST {{host}}/user
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Eve",
+  "email": "eve@example.com",
+  "password": "password456"
+}
+
+### Read User by ID
+GET {{host}}/user/1
+Accept: application/json
+
+### Update User by ID
+PUT {{host}}/user/1
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Eve Updated",
+  "email": "eve.updated@example.com",
+  "password": "newpassword789"
+}
+
+### Delete User by ID
+DELETE {{host}}/user/1
 Accept: application/json

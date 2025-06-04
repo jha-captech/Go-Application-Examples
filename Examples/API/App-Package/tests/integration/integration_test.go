@@ -337,3 +337,93 @@ func TestDeleteUser(t *testing.T) {
 	err = db.Get(&dbUser, "SELECT id, name, email, password FROM users WHERE id = ?", 2)
 	assert.Error(t, err, "Expected error when querying deleted user")
 }
+
+// TestNotFoundRoute verifies that the API returns a 404 Not Found problem detail for unknown routes.
+func TestNotFoundRoute(t *testing.T) {
+	t.Parallel()
+
+	server, _, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to create test server: %v", err)
+	}
+
+	t.Cleanup(server.Close)
+
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodGet,
+		server.URL+"/does-not-exist",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Failed to create GET request: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Failed to make GET request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode, "Expected status code 404 Not Found")
+
+	var problem struct {
+		Title  string `json:"title"`
+		Status int    `json:"status"`
+		Detail string `json:"detail"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&problem); err != nil {
+		t.Fatalf("Failed to decode problem detail: %v", err)
+	}
+
+	assert.Equal(t, "Path Not Found", problem.Title)
+	assert.Equal(t, http.StatusNotFound, problem.Status)
+	assert.NotEmpty(t, problem.Detail)
+}
+
+// TestHealthCheck verifies that the /health endpoint returns the correct health status and details.
+func TestHealthCheck(t *testing.T) {
+	t.Parallel()
+
+	server, _, err := newTestServer()
+	if err != nil {
+		t.Fatalf("Failed to create test server: %v", err)
+	}
+	t.Cleanup(server.Close)
+
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodGet,
+		server.URL+"/health",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Failed to create GET request: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Failed to make GET request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200 OK")
+
+	var health struct {
+		Status  string `json:"status"`
+		Details []struct {
+			Name   string `json:"name"`
+			Status string `json:"status"`
+		} `json:"details"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
+		t.Fatalf("Failed to decode health response: %v", err)
+	}
+
+	assert.Equal(t, "healthy", health.Status)
+	assert.Len(t, health.Details, 1)
+	assert.Equal(t, "db", health.Details[0].Name)
+	assert.Equal(t, "healthy", health.Details[0].Status)
+}

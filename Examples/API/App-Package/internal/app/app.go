@@ -11,10 +11,10 @@ import (
 
 // NewHandler creates and returns a new HTTP handler with all application routes registered.
 // It takes a logger and a database connection as dependencies.
-func NewHandler(logger *slog.Logger, db *sqlx.DB) http.Handler {
+func NewHandler(logger *slog.Logger, db *sqlx.DB, enableSwagger bool) http.Handler {
 	mux := http.NewServeMux()
 
-	addRoutes(mux, logger, db)
+	addRoutes(mux, logger, db, enableSwagger)
 
 	return mux
 }

@@ -60,11 +60,18 @@ tasks:
       - tagalign -fix -sort -strict ./...
     silent: true
 
-  test:
-    desc: Run all Go tests
+  test:unit:
+    desc: Run all Go unit tests
     cmds:
-      - echo "Running tests..."
-      - go test -count=1 ./...
+      - echo "Running unit tests..."
+      - go test -count=1 ./internal/...
+    silent: true
+
+  test:integration:
+    desc: Run all Go integration tests
+    cmds:
+      - echo "Running integration tests..."
+      - go test -count=1 ./tests/integration/...
     silent: true
 
   docs:generate:
