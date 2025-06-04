@@ -76,7 +76,7 @@ func newTestServer() (*httptest.Server, *sqlx.DB, error) {
 	// Set up in-memory database
 	db, err := newTestDB()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create test database: %v", err)
+		return nil, nil, fmt.Errorf("failed to create test database: %w", err)
 	}
 
 	logger := slog.Default()

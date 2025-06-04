@@ -19,10 +19,21 @@ func TestHealth(t *testing.T) {
 	}
 	t.Cleanup(server.Close)
 
-	resp, err := http.Get(server.URL + "/api/health")
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodGet,
+		server.URL+"/api/health",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Failed to create GET request: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("Failed to make GET request: %v", err)
 	}
+	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200 OK")
 }
@@ -49,7 +60,17 @@ func TestReadUser(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			resp, err := http.Get(server.URL + "/api/user/" + strconv.Itoa(tc.id))
+			req, err := http.NewRequestWithContext(
+				t.Context(),
+				http.MethodGet,
+				server.URL+"/api/user/"+strconv.Itoa(tc.id),
+				nil,
+			)
+			if err != nil {
+				t.Fatalf("Failed to create GET request: %v", err)
+			}
+
+			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to make GET request: %v", err)
 			}
@@ -94,7 +115,12 @@ func TestListUsers(t *testing.T) {
 	}
 	t.Cleanup(server.Close)
 
-	resp, err := http.Get(server.URL + "/api/user")
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL+"/api/user", nil)
+	if err != nil {
+		t.Fatalf("Failed to create GET request: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("Failed to make GET request: %v", err)
 	}
@@ -148,7 +174,17 @@ func TestCreateUser(t *testing.T) {
 		t.Fatalf("Failed to marshal user: %v", err)
 	}
 
-	resp, err := http.Post(server.URL+"/api/user", "application/json", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodPost,
+		server.URL+"/api/user",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create POST request: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("Failed to make POST request: %v", err)
 	}
@@ -315,7 +351,17 @@ func TestWildcard(t *testing.T) {
 	}
 	t.Cleanup(server.Close)
 
-	resp, err := http.Get(server.URL + "/api/wildcard/test")
+	req, err := http.NewRequestWithContext(
+		t.Context(),
+		http.MethodGet,
+		server.URL+"/api/wildcard/test",
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Failed to create GET request: %v", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatalf("Failed to make GET request: %v", err)
 	}

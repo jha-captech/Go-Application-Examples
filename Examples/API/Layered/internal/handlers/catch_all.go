@@ -16,5 +16,4 @@ func HandleCatchAll() http.HandlerFunc {
 			TraceID: middleware.GetTraceID(r.Context()),
 		})
 	}
-
 }
