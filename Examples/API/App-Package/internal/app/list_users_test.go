@@ -22,7 +22,7 @@ func TestListUsers(t *testing.T) {
 	testcases := map[string]struct {
 		mockDB
 		wantStatus int
-		wantUsers  []user
+		wantUsers  []userResponse
 	}{
 		"success": {
 			mockDB: mockDB{
@@ -32,9 +32,9 @@ func TestListUsers(t *testing.T) {
 				mockError: nil,
 			},
 			wantStatus: http.StatusOK,
-			wantUsers: []user{
-				{ID: 1, Name: "Alice", Email: "alice@example.com", Password: "pw1"},
-				{ID: 2, Name: "Bob", Email: "bob@example.com", Password: "pw2"},
+			wantUsers: []userResponse{
+				{ID: 1, Name: "Alice", Email: "alice@example.com"},
+				{ID: 2, Name: "Bob", Email: "bob@example.com"},
 			},
 		},
 		"empty": {
@@ -43,7 +43,7 @@ func TestListUsers(t *testing.T) {
 				mockError: nil,
 			},
 			wantStatus: http.StatusOK,
-			wantUsers:  []user{},
+			wantUsers:  []userResponse{},
 		},
 		"scan_error": {
 			mockDB: mockDB{
@@ -96,13 +96,15 @@ func TestListUsers(t *testing.T) {
 			}
 
 			if tc.wantStatus == http.StatusOK {
-				var gotUsers []user
+				var gotUsers []userResponse
 				if err := json.NewDecoder(rec.Body).Decode(&gotUsers); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}
+
 				if len(gotUsers) != len(tc.wantUsers) {
 					t.Errorf("want %d users, got %d", len(tc.wantUsers), len(gotUsers))
 				}
+
 				for i := range gotUsers {
 					if gotUsers[i] != tc.wantUsers[i] {
 						t.Errorf("want user %+v, got %+v", tc.wantUsers[i], gotUsers[i])

@@ -57,6 +57,7 @@ func run(ctx context.Context) error {
 	// Ensure the database connection is closed on exit.
 	defer func() {
 		logger.DebugContext(ctx, "Closing database connection")
+		
 		if err = db.Close(); err != nil {
 			logger.ErrorContext(ctx, "Failed to close database connection", "err", err)
 		}

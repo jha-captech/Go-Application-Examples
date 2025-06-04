@@ -11,6 +11,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// readUser is an HTTP handler function that retrieves a user by ID from the database.
+//
 // @Summary		Read User
 // @Description	Read User by ID
 // @Tags		user
@@ -23,11 +25,13 @@ import (
 // @Failure		500	{object}	string
 // @Router		/user/{id}	[GET]
 func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
+	const funcName = "app.readUser"
+	logger = logger.With(slog.String("func", funcName))
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		const funcName = "app.readUser"
-		logger = logger.With(slog.String("func", funcName), getTraceIDAsAttr(ctx))
+		logger = logger.With(getTraceIDAsAttr(ctx))
 
 		// read id from path parameters
 		idStr := r.PathValue("id")
@@ -39,16 +43,12 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			_ = encodeResponseJSON(
-				w,
-				http.StatusBadRequest,
-				problemDetail{
-					// ignore the error here because it should never happen with a defined struct
-					Title:  "Bad Request",
-					Status: http.StatusBadRequest,
-					Detail: "The provided ID is not a valid integer.",
-				},
-			)
+			_ = encodeResponseJSON(w, http.StatusBadRequest, problemDetail{
+				Title:   "Bad Request",
+				Status:  http.StatusBadRequest,
+				Detail:  "The provided ID is not a valid integer.",
+				TraceID: getTraceID(ctx),
+			})
 
 			return
 		}
@@ -56,10 +56,10 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		// read the user
 		logger.InfoContext(ctx, "Reading user", slog.Int("id", id))
 
-		var user user
+		var u user
 		err = db.GetContext(
 			ctx,
-			&user,
+			&u,
 			`
 			SELECT id,
 				name,
@@ -70,16 +70,17 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 			`,
 			id,
 		)
+
 		if err != nil {
 			switch {
 			case errors.Is(err, sql.ErrNoRows):
-				_ = encodeResponseJSON(
-					w, http.StatusNotFound, problemDetail{
-						Title:  "User Not Found",
-						Status: http.StatusNotFound,
-						Detail: fmt.Sprintf("User with ID %d not found", id),
-					},
-				)
+				_ = encodeResponseJSON(w, http.StatusNotFound, problemDetail{
+					Title:   "User Not Found",
+					Status:  http.StatusNotFound,
+					Detail:  fmt.Sprintf("User with ID %d not found", id),
+					TraceID: getTraceID(ctx),
+				})
+				
 				return
 			default:
 				logger.ErrorContext(
@@ -87,12 +88,23 @@ func readUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 					"failed to read user",
 					slog.String("error", err.Error()),
 				)
-				_ = encodeResponseJSON(w, http.StatusInternalServerError, newInternalServerError())
+				_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
+					Title:   "Internal Server Error",
+					Status:  500,
+					Detail:  "An unexpected error occurred.",
+					TraceID: getTraceID(ctx),
+				})
+
 				return
 			}
 		}
 
-		// respond with user as JSON
-		_ = encodeResponseJSON(w, http.StatusOK, user)
+		// respond with userResponse (no password)
+		resp := userResponse{
+			ID:    u.ID,
+			Name:  u.Name,
+			Email: u.Email,
+		}
+		_ = encodeResponseJSON(w, http.StatusOK, resp)
 	}
 }

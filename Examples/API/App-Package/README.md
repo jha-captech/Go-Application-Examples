@@ -36,54 +36,6 @@
 └── dockerfile                     # Dockerfile for building the application container
 ```
 
-### File Descriptions
-
-- **cmd/app/main.go**  
-  Application entry point. Sets up the server, dependencies, and starts the HTTP service.
-
-- **internal/app/app.go**  
-  Provides the main HTTP handler setup (`NewHandler`) and utility functions for encoding JSON
-  responses.
-
-- **internal/app/config.go**  
-  Loads application configuration from environment variables (and optionally a `.env` file) into a
-  strongly-typed struct.
-
-- **internal/app/routes.go**  
-  Registers all HTTP routes and connects them to their respective handlers.
-
-- **internal/app/models.go**  
-  Defines the `User` struct and any related data types or validation logic.
-
-- **internal/app/middleware.go**  
-  Contains middleware functions for logging, tracing, authentication, etc.
-
-- **internal/app/create_user.go**  
-  Handler for creating a new user (`POST /user`).
-    - Validates input, inserts a new user into the database, and returns the created user.
-
-- **internal/app/read_user.go**  
-  Handler for retrieving a user by ID (`GET /user/{id}`).
-    - Fetches a user from the database and returns it as JSON.
-
-- **internal/app/update_user.go**  
-  Handler for updating an existing user by ID (`PUT /user/{id}`).
-    - Validates input, updates user fields in the database, and returns the updated user.
-
-- **internal/app/delete_user.go**  
-  Handler for deleting a user by ID (`DELETE /user/{id}`).
-    - Removes the user from the database and returns a 204 No Content response.
-
-- **internal/app/list_users.go**  
-  Handler for listing all users (`GET /user`).
-    - Returns a list of all users in the database.
-
-- **tests/integration/integration_test.go**  
-  Integration tests for all user CRUD endpoints, verifying API and DB behavior.
-
-- **tests/integration/helper.go**  
-  Test helpers for setting up an in-memory database and test HTTP server.
-
 ### General Notes
 
 - The App Package architecture is a natural progression from a completely flat architecture. It
@@ -102,6 +54,7 @@
   into more complex architectures as requirements grow.
 - As a general rule, the App Package architecture is the simplest architecture that should be used
   for production code, balancing maintainability and minimalism.
+- This example is missing some components present in other architecture examples in this repo (caching, otel, etc). This is intentional. Since the app-architecture design is designed to be fairly simple, it wouldn't make sense to have all the bells and whistles in an example application.
 
 ### Example Applications
 
@@ -183,8 +136,42 @@ task setup:deps
 
 ### Run the Application
 
+- Build Docker Image
+
+  ```bash
+  task docker:build
+  ```
+
+- Run the Application Locally
+
+  ```bash
+  task app:start
+  ```
+
+- Stop Docker Images
+
+  ```bash
+  task docker:stop
+  ```
+
 - Run database and migrations
 
     ```bash
     task db:start
     ```
+
+### Working Locally
+
+- Run Unit and Integration Tests
+
+  ```bash
+  task test
+  ```
+
+- Format Go Files
+
+  ```bash
+  task format
+  ```
+
+You can see other task commands that are available by running `task`

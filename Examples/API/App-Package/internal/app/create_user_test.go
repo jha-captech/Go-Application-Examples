@@ -26,7 +26,7 @@ func TestCreateUser(t *testing.T) {
 		mockDB
 		inputJSON  string
 		wantStatus int
-		wantUser   user
+		wantUser   userResponse
 	}{
 		"success": {
 			mockDB: mockDB{
@@ -37,11 +37,11 @@ func TestCreateUser(t *testing.T) {
 			},
 			inputJSON:  `{"name":"Alice","email":"alice@example.com","password":"supersecret"}`,
 			wantStatus: 201,
-			wantUser: user{
+			wantUser: userResponse{
 				ID:       1,
 				Name:     "Alice",
 				Email:    "alice@example.com",
-				Password: "supersecret",
+
 			},
 		},
 		"invalid_json": {
@@ -53,7 +53,7 @@ func TestCreateUser(t *testing.T) {
 			},
 			inputJSON:  `{"name": "Bob", "email": "bob@example.com", "password": password123}`,
 			wantStatus: 400,
-			wantUser:   user{},
+			wantUser:   userResponse{},
 		},
 		"request_validation_error": {
 			mockDB: mockDB{
@@ -64,7 +64,7 @@ func TestCreateUser(t *testing.T) {
 			},
 			inputJSON:  `{"name": "Bob", "email": "bob@example.com", "password": "pass"}`,
 			wantStatus: 400,
-			wantUser:   user{},
+			wantUser:   userResponse{},
 		},
 		"db_error": {
 			mockDB: mockDB{
@@ -75,7 +75,7 @@ func TestCreateUser(t *testing.T) {
 			},
 			inputJSON:  `{"name":"Bob","email":"bob@example.com","password":"password123"}`,
 			wantStatus: 500,
-			wantUser:   user{},
+			wantUser:   userResponse{},
 		},
 	}
 
@@ -114,7 +114,7 @@ func TestCreateUser(t *testing.T) {
 			}
 
 			if tc.wantStatus == 201 {
-				var gotUser user
+				var gotUser userResponse
 				if err := json.NewDecoder(rec.Body).Decode(&gotUser); err != nil {
 					t.Errorf("failed to decode response body: %v", err)
 				}

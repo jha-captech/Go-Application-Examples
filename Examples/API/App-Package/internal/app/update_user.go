@@ -11,6 +11,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// readUser is an HTTP handler function that reads a user by ID from the database.
+//
 // @Summary		Update User
 // @Description	Update user fields by ID
 // @Tags		user
@@ -24,11 +26,12 @@ import (
 // @Failure		500		{object}	string
 // @Router		/user/{id} [PUT]
 func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
+	const funcName = "app.updateUser"
+	logger = logger.With(slog.String("func", funcName))
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-
-		const funcName = "app.updateUser"
-		logger = logger.With(slog.String("func", funcName), getTraceIDAsAttr(ctx))
+		logger = logger.With(getTraceIDAsAttr(ctx))
 
 		// read id from path parameters
 		idStr := r.PathValue("id")
@@ -40,34 +43,30 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				slog.String("id", idStr),
 				slog.String("error", err.Error()),
 			)
-			_ = encodeResponseJSON(
-				w,
-				http.StatusBadRequest,
-				problemDetail{
-					// ignore the error here because it should never happen with a defined struct
-					Title:  "Invalid ID",
-					Status: http.StatusBadRequest,
-					Detail: "The provided ID is not a valid integer.",
-				},
-			)
+			_ = encodeResponseJSON(w, http.StatusBadRequest, problemDetail{
+				Title:   "Invalid ID",
+				Status:  http.StatusBadRequest,
+				Detail:  "The provided ID is not a valid integer.",
+				TraceID: getTraceID(ctx),
+			})
 
 			return
 		}
 
 		// request validation
-		user, problems, err := decodeValid[user](r)
+		req, problems, err := decodeValid[userRequest](r)
 		if err != nil && len(problems) == 0 {
 			logger.ErrorContext(
 				ctx,
 				"failed to decode request",
 				slog.String("error", err.Error()),
 			)
-
 			_ = encodeResponseJSON(
 				w, http.StatusBadRequest, problemDetail{
-					Title:  "Bad Request",
-					Status: 400,
-					Detail: "Invalid request body.",
+					Title:   "Bad Request",
+					Status:  400,
+					Detail:  "Invalid request body.",
+					TraceID: getTraceID(ctx),
 				},
 			)
 
@@ -80,7 +79,15 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 				"Validation error",
 				slog.String("Validation errors: ", fmt.Sprintf("%#v", problems)),
 			)
-			_ = encodeResponseJSON(w, http.StatusBadRequest, newValidationBadRequest(problems))
+			_ = encodeResponseJSON(w, http.StatusBadRequest, problemDetailValidation{
+				problemDetail: problemDetail{
+					Title:   "Bad Request",
+					Status:  400,
+					Detail:  "The request contains invalid parameters.",
+					TraceID: getTraceID(ctx),
+				},
+				InvalidParams: problems,
+			})
 
 			return
 		}
@@ -88,54 +95,64 @@ func updateUser(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		logger.InfoContext(
 			ctx, "Updating user",
 			slog.Int("id", id),
-			slog.String("name", user.Name),
-			slog.String("email", user.Email),
+			slog.String("name", req.Name),
+			slog.String("email", req.Email),
 		)
 
 		// update user in db
+		var updatedUser user
 		err = db.GetContext(
 			ctx,
-			&user,
+			&updatedUser,
 			`
             UPDATE users
-			SET name     = $1,
-				email    = $2,
-				password = $3
-			WHERE id = $4
-			RETURNING id, name, email, password
-        	`,
-			user.Name,
-			user.Email,
-			user.Password,
+            SET name     = $1,
+                email    = $2,
+                password = $3
+            WHERE id = $4
+            RETURNING id, name, email, password
+            `,
+			req.Name,
+			req.Email,
+			req.Password,
 			id,
 		)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				_ = encodeResponseJSON(
-					w, http.StatusNotFound, problemDetail{
-						Title:  "User Not Found",
-						Status: http.StatusNotFound,
-						Detail: fmt.Sprintf("User with ID %d not found", id),
-					},
-				)
+				_ = encodeResponseJSON(w, http.StatusNotFound, problemDetail{
+					Title:   "User Not Found",
+					Status:  http.StatusNotFound,
+					Detail:  fmt.Sprintf("User with ID %d not found", id),
+					TraceID: getTraceID(ctx),
+				})
 
 				return
 			}
 
 			logger.ErrorContext(ctx, "failed to update user", slog.String("error", err.Error()))
-			_ = encodeResponseJSON(w, http.StatusInternalServerError, newInternalServerError())
-
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
+				Title:   "Internal Server Error",
+				Status:  500,
+				Detail:  "An unexpected error occurred.",
+				TraceID: getTraceID(ctx),
+			})
+			
 			return
 		}
 
 		logger.InfoContext(
 			ctx, "User updated successfully",
-			slog.Uint64("id", uint64(user.ID)),
-			slog.String("name", user.Name),
-			slog.String("email", user.Email),
+			slog.Uint64("id", uint64(updatedUser.ID)),
+			slog.String("name", updatedUser.Name),
+			slog.String("email", updatedUser.Email),
 		)
 
-		// respond with updated user
-		_ = encodeResponseJSON(w, http.StatusOK, user)
+		// respond with updated user (without password)
+		resp := userResponse{
+			ID:    updatedUser.ID,
+			Name:  updatedUser.Name,
+			Email: updatedUser.Email,
+		}
+		_ = encodeResponseJSON(w, http.StatusOK, resp)
 	}
 }

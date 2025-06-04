@@ -74,7 +74,6 @@ func RecoveryMiddleware(logger *slog.Logger) middlewareFunc {
 			func(w http.ResponseWriter, r *http.Request) {
 				defer func() {
 					if rc := recover(); rc != nil {
-
 						logger.InfoContext(
 							r.Context(),
 							"panic recovered",

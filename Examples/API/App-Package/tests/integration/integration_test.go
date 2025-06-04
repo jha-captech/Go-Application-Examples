@@ -11,25 +11,25 @@ import (
 )
 
 // TestReadUser verifies that the API correctly returns user details for each user ID.
-// It checks that the returned user data matches the expected name, email, and password for each user.
+// It checks that the returned user data matches the expected name and email for each user.
 func TestReadUser(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		id       int
-		name     string
-		email    string
-		password string
+		id    int
+		name  string
+		email string
 	}{
-		{1, "Alice", "alice@example.com", "password123"},
-		{2, "Bob", "bob@example.com", "securepass456"},
-		{3, "Carol", "carol@example.com", "carolpass789"},
-		{4, "Dave", "dave@example.com", "davepass321"},
+		{1, "Alice", "alice@example.com"},
+		{2, "Bob", "bob@example.com"},
+		{3, "Carol", "carol@example.com"},
+		{4, "Dave", "dave@example.com"},
 	}
 
 	server, _, err := newTestServer()
 	if err != nil {
 		t.Fatalf("Failed to create test server: %v", err)
 	}
+
 	t.Cleanup(server.Close)
 
 	for _, tc := range tests {
@@ -42,11 +42,11 @@ func TestReadUser(t *testing.T) {
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200 OK")
 
+			// Use userResponse model (no password field)
 			var user struct {
-				ID       int    `json:"id"`
-				Name     string `json:"name"`
-				Email    string `json:"email"`
-				Password string `json:"password"`
+				ID    int    `json:"id"`
+				Name  string `json:"name"`
+				Email string `json:"email"`
 			}
 			if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
 				t.Fatalf("Failed to decode response: %v", err)
@@ -55,7 +55,6 @@ func TestReadUser(t *testing.T) {
 			assert.Equal(t, tc.id, user.ID, "User ID mismatch")
 			assert.Equal(t, tc.name, user.Name, "User name mismatch")
 			assert.Equal(t, tc.email, user.Email, "User email mismatch")
-			assert.Equal(t, tc.password, user.Password, "User password mismatch")
 		})
 	}
 }
@@ -66,21 +65,21 @@ func TestListUsers(t *testing.T) {
 	t.Parallel()
 
 	expected := []struct {
-		ID       int
-		Name     string
-		Email    string
-		Password string
+		ID    int
+		Name  string
+		Email string
 	}{
-		{1, "Alice", "alice@example.com", "password123"},
-		{2, "Bob", "bob@example.com", "securepass456"},
-		{3, "Carol", "carol@example.com", "carolpass789"},
-		{4, "Dave", "dave@example.com", "davepass321"},
+		{1, "Alice", "alice@example.com"},
+		{2, "Bob", "bob@example.com"},
+		{3, "Carol", "carol@example.com"},
+		{4, "Dave", "dave@example.com"},
 	}
 
 	server, _, err := newTestServer()
 	if err != nil {
 		t.Fatalf("Failed to create test server: %v", err)
 	}
+
 	t.Cleanup(server.Close)
 
 	resp, err := http.Get(server.URL + "/api/users")
@@ -92,10 +91,9 @@ func TestListUsers(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected status code 200 OK")
 
 	var users []struct {
-		ID       int    `json:"id"`
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		ID    int    `json:"id"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
@@ -108,7 +106,6 @@ func TestListUsers(t *testing.T) {
 		assert.Equal(t, exp.ID, got.ID, "User ID mismatch at index %d", i)
 		assert.Equal(t, exp.Name, got.Name, "User name mismatch at index %d", i)
 		assert.Equal(t, exp.Email, got.Email, "User email mismatch at index %d", i)
-		assert.Equal(t, exp.Password, got.Password, "User password mismatch at index %d", i)
 	}
 }
 
@@ -145,17 +142,13 @@ func TestCreateUser(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
-		t.Fatalf("Expected status 201 Created, got %d", resp.StatusCode)
-	}
-
 	assert.Equal(t, resp.StatusCode, http.StatusCreated, "Expected status code 201 Created")
 
+	// Use userResponse model (no password field)
 	var createdUser struct {
-		ID       int    `json:"id"`
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		ID    int    `json:"id"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&createdUser); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
@@ -163,7 +156,6 @@ func TestCreateUser(t *testing.T) {
 
 	assert.Equal(t, newUser.Name, createdUser.Name, "Created user name mismatch")
 	assert.Equal(t, newUser.Email, createdUser.Email, "Created user email mismatch")
-	assert.Equal(t, newUser.Password, createdUser.Password, "Created user password mismatch")
 
 	// verify the new user was inserted into the database
 	var dbUser struct {
@@ -197,6 +189,7 @@ func TestUpdateUser(t *testing.T) {
 	}
 	t.Cleanup(server.Close)
 
+	// Use userRequest model for request body
 	updatedUser := struct {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
@@ -207,7 +200,6 @@ func TestUpdateUser(t *testing.T) {
 		Password: "newpassword123",
 	}
 
-	// Marshal updated user to JSON
 	body, err := json.Marshal(updatedUser)
 	if err != nil {
 		t.Fatalf("Failed to marshal user: %v", err)
@@ -227,11 +219,11 @@ func TestUpdateUser(t *testing.T) {
 
 	assert.Equal(t, resp.StatusCode, http.StatusOK, "Expected status code 200 OK")
 
+	// Use userResponse model for response (no password field)
 	var user struct {
-		ID       int    `json:"id"`
-		Name     string `json:"name"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		ID    int    `json:"id"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
@@ -239,7 +231,6 @@ func TestUpdateUser(t *testing.T) {
 
 	assert.Equal(t, updatedUser.Name, user.Name, "Updated user name mismatch")
 	assert.Equal(t, updatedUser.Email, user.Email, "Updated user email mismatch")
-	assert.Equal(t, updatedUser.Password, user.Password, "Updated user password mismatch")
 	assert.Equal(t, 1, user.ID, "Updated user ID mismatch")
 
 	// verify the user was updated in the database

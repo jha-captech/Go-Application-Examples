@@ -18,11 +18,13 @@ import (
 // @Failure		500	{object}	string
 // @Router		/user	[GET]
 func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
+	const funcName = "app.listUsers"
+	logger = logger.With(slog.String("func", funcName))
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		const funcName = "app.listUsers"
-		logger = logger.With(slog.String("func", funcName), getTraceIDAsAttr(ctx))
+		logger = logger.With(getTraceIDAsAttr(ctx))
 
 		logger.InfoContext(ctx, "Listing all users")
 
@@ -38,15 +40,26 @@ func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 		)
 		if err != nil {
 			logger.ErrorContext(ctx, "failed to query users", slog.String("error", err.Error()))
-			_ = encodeResponseJSON(
-				w,
-				http.StatusInternalServerError,
-				newInternalServerError(),
-			) // ignore the error here because it should never happen with a defined struct
-
+			_ = encodeResponseJSON(w, http.StatusInternalServerError, problemDetail{
+				Title:   "Internal Server Error",
+				Status:  500,
+				Detail:  "An unexpected error occurred.",
+				TraceID: getTraceID(ctx),
+			})
+			
 			return
 		}
 
-		_ = encodeResponseJSON(w, http.StatusOK, users)
+		// Convert []user to []userResponse to exclude password
+		userResponses := make([]userResponse, 0, len(users))
+		for _, u := range users {
+			userResponses = append(userResponses, userResponse{
+				ID:    u.ID,
+				Name:  u.Name,
+				Email: u.Email,
+			})
+		}
+
+		_ = encodeResponseJSON(w, http.StatusOK, userResponses)
 	}
 }
