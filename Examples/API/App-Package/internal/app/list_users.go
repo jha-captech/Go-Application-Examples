@@ -16,7 +16,7 @@ import (
 //	@Produce		json
 //	@Success		200			{array}		user
 //	@Failure		500			{object}	problemDetail
-//	@Router			/api/users	[GET]
+//	@Router			/api/user	[GET]
 func listUsers(logger *slog.Logger, db *sqlx.DB) http.HandlerFunc {
 	const funcName = "app.listUsers"
 	logger = logger.With(slog.String("func", funcName))

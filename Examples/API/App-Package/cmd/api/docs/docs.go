@@ -16,6 +16,33 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/api/user": {
+            "get": {
+                "description": "List all users",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "List Users",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/app.user"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/app.problemDetail"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Create a new user",
                 "consumes": [
@@ -212,35 +239,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/api/users": {
-            "get": {
-                "description": "List all users",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "user"
-                ],
-                "summary": "List Users",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/app.user"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/app.problemDetail"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -248,7 +246,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "detail": {
-                    "description": "A human-readable explanation specific to this occurrence of the problem.",
+                    "description": "A human-readable explanation about the occurrence of the problem.",
                     "type": "string"
                 },
                 "status": {
@@ -269,7 +267,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "detail": {
-                    "description": "A human-readable explanation specific to this occurrence of the problem.",
+                    "description": "A human-readable explanation about the occurrence of the problem.",
                     "type": "string"
                 },
                 "invalidParams": {

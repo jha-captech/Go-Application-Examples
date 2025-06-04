@@ -18,7 +18,7 @@ func addRoutes(mux *http.ServeMux, logger *slog.Logger, db *sqlx.DB) {
 	mux.Handle("POST /api/user", createUser(logger, db))
 	mux.Handle("PUT /api/user/{id}", updateUser(logger, db))
 	mux.Handle("DELETE /api/user/{id}", deleteUser(logger, db))
-	mux.Handle("GET /api/users", listUsers(logger, db))
+	mux.Handle("GET /api/user", listUsers(logger, db))
 
 	// Swagger docs
 	mux.Handle(

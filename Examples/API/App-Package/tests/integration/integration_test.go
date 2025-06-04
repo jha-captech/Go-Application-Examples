@@ -96,7 +96,7 @@ func TestListUsers(t *testing.T) {
 	req, err := http.NewRequestWithContext(
 		t.Context(),
 		http.MethodGet,
-		server.URL+"/api/users",
+		server.URL+"/api/user",
 		nil,
 	)
 	if err != nil {
