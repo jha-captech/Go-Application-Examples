@@ -6,6 +6,9 @@ services:
     env_file:
       - .env
     environment:
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_DB: ${DATABASE_NAME}
       PGUSER: postgres
     ports:
       - "5432:5432"
@@ -33,6 +36,34 @@ services:
       FLYWAY_CONNECT_RETRIES: 10
     command: migrate
 
+  jaeger:
+    image: jaegertracing/jaeger:2.6.0
+    container_name: jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI -> http://localhost:16686
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "5778:5778"    # Sampling
+      - "9411:9411"    # Zipkin compatibility
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:16686" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  cache:
+    image: redis:7.4-alpine
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${CACHE_PASSWORD}
+    volumes:
+      - cache:/data
+
   api:
     build: .
     ports:
@@ -42,8 +73,12 @@ services:
         condition: service_healthy
       flyway:
         condition: service_completed_successfully
+      jaeger:
+        condition: service_healthy
     env_file:
       - .env
 
 volumes:
   postgres-db:
+  cache:
+    driver: local

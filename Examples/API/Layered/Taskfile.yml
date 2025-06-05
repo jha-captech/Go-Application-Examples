@@ -15,6 +15,8 @@ tasks:
       - brew install go
       - brew install colima
       - brew install golangci-lint
+      - brew install docker
+      - brew install docker-compose
 
       # --- Go tools ---
       - go install github.com/vektra/mockery/v3@v3.2.5
@@ -22,6 +24,7 @@ tasks:
       - go install mvdan.cc/gofumpt@latest
       - go install github.com/daixiang0/gci@latest
       - go install github.com/4meepo/tagalign/cmd/tagalign@latest
+      - go install github.com/swaggo/swag/cmd/swag@latest
 
       # --- Project dependencies ---
       - |
@@ -57,11 +60,51 @@ tasks:
       - tagalign -fix -sort -strict ./...
     silent: true
 
-  test:
-    desc: Run all Go tests
+  test:unit:
+    desc: Run all Go unit tests
     cmds:
-      - echo "Running tests..."
-      - go test -count=1 ./...
+      - echo "Running unit tests..."
+      - go test -count=1 ./internal/...
+    silent: true
+
+  test:integration:
+    desc: Run all Go integration tests
+    cmds:
+      - echo "Running integration tests..."
+      - go test -count=1 ./tests/integration
+    silent: true
+
+  docs:generate:
+    desc: Generate swagger documentation using GoDoc
+    cmds:
+      - swag init -g internal/routes/routes.go --output "cmd/api/docs"
+      - swag fmt
+    silent: true
+
+  mock:generate:
+    desc: Generate mocks for interfaces in the project
+    cmds:
+      - echo "Generating mocks..."
+      - mockery
+    silent: true
+
+  mock:add-to-git:
+    desc: Add generated mocks to git
+    cmds:
+      - echo "Adding generated mocks to git..."
+      - git add $(find ./internal -name 'mocks_test.go')
+    silent: true
+
+  mock:remove:
+    desc: Remove existing mocks from git
+    cmds:
+      - echo "Removing existing mocks..."
+      - find ./internal -name 'mocks_test.go' -delete
+    silent: true
+
+  mock:
+    desc: Generate and add mocks to git
+    deps: [ mock:remove, mock:generate, mock:add-to-git ]
     silent: true
 
   # --------------------------------------------------------------------------
@@ -121,7 +164,7 @@ tasks:
     deps: [ colima:start ]
     cmds:
       - echo "Starting application..."
-      - docker compose up -d
+      - docker compose build && docker compose up -d
     silent: true
 
   # --------------------------------------------------------------------------
