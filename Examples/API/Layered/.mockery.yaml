@@ -1,0 +1,7 @@
+template: matryer
+filename: "mocks_test.go"
+structname: "moq{{.InterfaceName}}"
+packages:
+  "example.com/examples/api/layered/internal/handlers":
+    config:
+      all: true
