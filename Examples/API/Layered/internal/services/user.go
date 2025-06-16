@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"go.opentelemetry.io/otel/codes"
 
 	"example.com/examples/api/layered/internal/models"
 )
@@ -44,7 +45,12 @@ type HealthStatus struct {
 
 // DeepHealthCheck checks the health of the DB and cache, returning their statuses and an error if any are unhealthy.
 func (s *UsersService) DeepHealthCheck(ctx context.Context) ([]HealthStatus, error) {
-	logger := s.logger.With(slog.String("func", "services.UsersService.DeepHealthCheck"))
+	const name = "services.UsersService.DeepHealthCheck"
+
+	ctx, span := tracer.Start(ctx, name)
+	defer span.End()
+
+	logger := s.logger.With(slog.String("func", name))
 	logger.DebugContext(ctx, "Performing deep health check")
 
 	var deps []HealthStatus
@@ -83,7 +89,12 @@ func (s *UsersService) DeepHealthCheck(ctx context.Context) ([]HealthStatus, err
 // CreateUser attempts to create the provided user, returning a fully hydrated
 // models.User or an error.
 func (s *UsersService) CreateUser(ctx context.Context, user models.User) (models.User, error) {
-	logger := s.logger.With(slog.String("func", "services.UsersService.CreateUser"))
+	const name = "services.UsersService.CreateUser"
+
+	ctx, span := tracer.Start(ctx, name)
+	defer span.End()
+
+	logger := s.logger.With(slog.String("func", name))
 	logger.DebugContext(ctx, "Creating user", "name", user.Name)
 
 	err := s.db.GetContext(
@@ -100,6 +111,9 @@ func (s *UsersService) CreateUser(ctx context.Context, user models.User) (models
 		user.Password,
 	)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to create user")
+		span.RecordError(err)
+
 		return models.User{}, fmt.Errorf(
 			"[in services.UsersService.CreateUser] failed to create user: %w",
 			err,
@@ -109,6 +123,9 @@ func (s *UsersService) CreateUser(ctx context.Context, user models.User) (models
 	// Write the user to the cache
 	logger.DebugContext(ctx, "Setting user in cache", "id", user.ID)
 	if err = s.cache.SetMarshal(ctx, strconv.Itoa(int(user.ID)), user); err != nil {
+		span.SetStatus(codes.Error, "failed to write user to cache")
+		span.RecordError(err)
+
 		return models.User{}, fmt.Errorf(
 			"[in services.UsersService.CreateUser] failed to write user to cache: %w",
 			err,
@@ -121,7 +138,12 @@ func (s *UsersService) CreateUser(ctx context.Context, user models.User) (models
 // ReadUser attempts to read a user from the database using the provided id. A
 // fully hydrated models.User or error is returned.
 func (s *UsersService) ReadUser(ctx context.Context, id uint64) (models.User, error) {
-	logger := s.logger.With(slog.String("func", "services.UsersService.ReadUser"))
+	const name = "services.UsersService.ReadUser"
+
+	ctx, span := tracer.Start(ctx, name)
+	defer span.End()
+
+	logger := s.logger.With(slog.String("func", name))
 	logger.DebugContext(ctx, "Reading user", "id", id)
 
 	// Check the cache for the user object
@@ -130,6 +152,9 @@ func (s *UsersService) ReadUser(ctx context.Context, id uint64) (models.User, er
 	var user models.User
 	found, err := s.cache.Get(ctx, strconv.FormatUint(id, 10)).Unmarshal(&user)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to read user from cache")
+		span.RecordError(err)
+
 		return models.User{}, fmt.Errorf(
 			"[in services.UsersService.ReadUser] failed to read user from cache: %w",
 			err,
@@ -159,6 +184,9 @@ func (s *UsersService) ReadUser(ctx context.Context, id uint64) (models.User, er
 		case errors.Is(err, sql.ErrNoRows):
 			return models.User{}, nil
 		default:
+			span.SetStatus(codes.Error, "failed to read user from database")
+			span.RecordError(err)
+
 			return models.User{}, fmt.Errorf(
 				"[in services.UsersService.ReadUser] failed to read user: %w",
 				err,
@@ -169,6 +197,9 @@ func (s *UsersService) ReadUser(ctx context.Context, id uint64) (models.User, er
 	// Write the user to the cache
 	logger.DebugContext(ctx, "Setting user in cache", "id", id)
 	if err = s.cache.SetMarshal(ctx, strconv.FormatUint(id, 10), user); err != nil {
+		span.SetStatus(codes.Error, "failed to write user to cache")
+		span.RecordError(err)
+
 		return models.User{}, fmt.Errorf(
 			"[in services.UsersService.ReadUser] failed to write user to cache: %w",
 			err,
@@ -186,7 +217,12 @@ func (s *UsersService) UpdateUser(
 	id uint64,
 	patch models.User,
 ) (models.User, error) {
-	logger := s.logger.With(slog.String("func", "services.UsersService.UpdateUser"))
+	const name = "services.UsersService.UpdateUser"
+
+	ctx, span := tracer.Start(ctx, name)
+	defer span.End()
+
+	logger := s.logger.With(slog.String("func", name))
 	logger.DebugContext(ctx, "Updating user", "id", id, "patch", patch)
 
 	_, err := s.db.ExecContext(
@@ -202,6 +238,9 @@ func (s *UsersService) UpdateUser(
 		id,
 	)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to update user")
+		span.RecordError(err)
+
 		return models.User{}, fmt.Errorf(
 			"[in services.UsersService.UpdateUser] failed to update user: %w",
 			err,
@@ -211,6 +250,9 @@ func (s *UsersService) UpdateUser(
 	// Read the updated user from the database
 	user, err := s.ReadUser(ctx, id)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to read updated user")
+		span.RecordError(err)
+
 		return models.User{}, fmt.Errorf(
 			"[in services.UsersService.UpdateUser] failed to read updated user: %w",
 			err,
@@ -220,6 +262,9 @@ func (s *UsersService) UpdateUser(
 	// Write the updated user to the cache
 	logger.DebugContext(ctx, "Setting updated user in cache", "id", id)
 	if err = s.cache.SetMarshal(ctx, strconv.FormatUint(id, 10), user); err != nil {
+		span.SetStatus(codes.Error, "failed to write updated user to cache")
+		span.RecordError(err)
+
 		return models.User{}, fmt.Errorf(
 			"[in services.UsersService.UpdateUser] failed to write updated user to cache: %w",
 			err,
@@ -234,7 +279,12 @@ func (s *UsersService) UpdateUser(
 // DeleteUser attempts to delete the user with the provided id. An error is
 // returned if the delete fails.
 func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
-	logger := s.logger.With(slog.String("func", "services.UsersService.DeleteUser"))
+	const name = "services.UsersService.DeleteUser"
+
+	ctx, span := tracer.Start(ctx, name)
+	defer span.End()
+
+	logger := s.logger.With(slog.String("func", name))
 	logger.DebugContext(ctx, "Deleting user", "id", id)
 
 	// Delete user from user table
@@ -248,6 +298,9 @@ func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
 		id,
 	)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to delete user")
+		span.RecordError(err)
+
 		return fmt.Errorf(
 			"[in services.UsersService.DeleteUser] failed to delete user: %w",
 			err,
@@ -257,6 +310,9 @@ func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
 	// Remove the user from the cache
 	logger.DebugContext(ctx, "Removing user from cache", "id", id)
 	if err = s.cache.Delete(ctx, strconv.FormatUint(id, 10)); err != nil {
+		span.SetStatus(codes.Error, "failed to remove user from cache")
+		span.RecordError(err)
+
 		return fmt.Errorf(
 			"[in services.UsersService.DeleteUser] failed to remove user from cache: %w",
 			err,
@@ -269,8 +325,14 @@ func (s *UsersService) DeleteUser(ctx context.Context, id uint64) error {
 // ListUsers attempts to list all users in the database. A slice of models.User
 // or an error is returned.
 func (s *UsersService) ListUsers(ctx context.Context) ([]models.User, error) {
-	logger := s.logger.With(slog.String("func", "services.UsersService.ListUsers"))
+	const name = "services.UsersService.ListUsers"
+
+	ctx, span := tracer.Start(ctx, name)
+	defer span.End()
+
+	logger := s.logger.With(slog.String("func", name))
 	logger.DebugContext(ctx, "Listing users")
+
 	var users []models.User
 
 	err := s.db.SelectContext(
@@ -285,6 +347,9 @@ func (s *UsersService) ListUsers(ctx context.Context) ([]models.User, error) {
         `,
 	)
 	if err != nil {
+		span.SetStatus(codes.Error, "failed to list users")
+		span.RecordError(err)
+
 		return nil, fmt.Errorf(
 			"[in services.UsersService.ListUser] failed to read users: %w",
 			err,
