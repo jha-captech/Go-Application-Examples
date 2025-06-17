@@ -31,20 +31,11 @@ func InstrumentServeMux(mux *http.ServeMux) *InstrumentedServeMux {
 	}
 }
 
-// setRootSpanName sets the name of the root span in the context to the given name.
-func setRootSpanName(ctx context.Context, name string) {
-	ctxValue := ctx.Value(spanKey{})
-	if ctxValue == nil {
-		return
-	}
-
-	span, ok := ctxValue.(trace.Span)
-	if !ok {
-		return
-	}
-
-	span.SetName(name)
-	span.SetAttributes(attribute.String("http.route", name))
+// AddMiddleware adds a middleware function to the InstrumentedServeMux.
+// Middleware will be applied in the order they are added, with the last added
+// middleware being applied first.
+func (m *InstrumentedServeMux) AddMiddleware(md middlewareFunc) {
+	m.middlewares = append(m.middlewares, md)
 }
 
 // HandleFunc wraps the ServeMux's Handle method to set the root span name
@@ -92,13 +83,22 @@ func (m *InstrumentedServeMux) InstrumentRootHandler(
 
 				handler.ServeHTTP(w, r.WithContext(ctx))
 			},
-		), "service", opts...,
+		), "handler", opts...,
 	)
 }
 
-// AddMiddleware adds a middleware function to the InstrumentedServeMux.
-// Middleware will be applied in the order they are added, with the last added
-// middleware being applied first.
-func (m *InstrumentedServeMux) AddMiddleware(md middlewareFunc) {
-	m.middlewares = append(m.middlewares, md)
+// setRootSpanName sets the name of the root span in the context to the given name.
+func setRootSpanName(ctx context.Context, name string) {
+	ctxValue := ctx.Value(spanKey{})
+	if ctxValue == nil {
+		return
+	}
+
+	span, ok := ctxValue.(trace.Span)
+	if !ok {
+		return
+	}
+
+	span.SetName(name)
+	span.SetAttributes(attribute.String("http.route", name))
 }
