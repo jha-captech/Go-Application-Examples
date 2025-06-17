@@ -21,6 +21,9 @@ func (w *wrappedWriter) WriteHeader(statusCode int) {
 func Logger(logger *slog.Logger) Func {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx, span := tracer.Start(r.Context(), "middleware.Logger")
+			defer span.End()
+
 			start := time.Now()
 
 			wrapped := &wrappedWriter{
@@ -28,7 +31,7 @@ func Logger(logger *slog.Logger) Func {
 				statusCode:     http.StatusOK,
 			}
 
-			next.ServeHTTP(wrapped, r)
+			next.ServeHTTP(wrapped, r.WithContext(ctx))
 
 			logger.InfoContext(
 				r.Context(),

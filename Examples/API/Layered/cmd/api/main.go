@@ -115,18 +115,15 @@ func run(ctx context.Context) error {
 	// Add our routes to the mux
 	routes.AddRoutes(mux, logger, usersService, cfg.SwaggerEnabled)
 
-	// Wrap the mux with middleware
-	wrappedMux := middleware.WrapHandler(
-		mux.InstrumentRootHandler(),
-		middleware.TraceID(),
-		middleware.Logger(logger),
-		middleware.Recover(logger),
-	)
+	// add middleware
+	mux.AddMiddleware(middleware.TraceID())
+	mux.AddMiddleware(middleware.Logger(logger))
+	mux.AddMiddleware(middleware.Recover(logger))
 
 	// Create a new http server with our mux as the handler
 	srv := &http.Server{
 		Addr:              ":8080",
-		Handler:           wrappedMux,
+		Handler:           mux.InstrumentRootHandler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 

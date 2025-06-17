@@ -2,6 +2,7 @@ package routes
 
 import (
 	"log/slog"
+	"net/http"
 
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 
@@ -9,8 +10,12 @@ import (
 	_ "example.com/examples/api/layered/cmd/api/docs"
 	"example.com/examples/api/layered/internal/handlers"
 	"example.com/examples/api/layered/internal/services"
-	"example.com/examples/api/layered/internal/telemetry"
 )
+
+// endpointMapper is an interface that defines a method for registering HTTP handlers
+type endpointMapper interface {
+	Handle(pattern string, handler http.Handler)
+}
 
 // AddRoutes registers the API routes with the provided ServeMux.
 //
@@ -28,7 +33,7 @@ import (
 //	@externalDocs.description	OpenAPI
 //	@externalDocs.url			https://swagger.io/resources/open-api/
 func AddRoutes(
-	mux *telemetry.InstrumentedServeMux,
+	mux endpointMapper,
 	logger *slog.Logger,
 	usersService *services.UsersService,
 	swaggerEnabled bool,
@@ -52,5 +57,5 @@ func AddRoutes(
 	}
 
 	// Catch-all route for 404 Not Found with problem detail
-	mux.HandleFunc("/", handlers.HandleCatchAll())
+	mux.Handle("/", handlers.HandleCatchAll())
 }
